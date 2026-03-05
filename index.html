@@ -597,11 +597,58 @@ function timeAgo(ts) {
   return `${Math.floor(diff/86400000)}日前`;
 }
 
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let replyingTo = null; // { id, nick } | null
+let openReplies = {}; // postId -> bool
+
 // ── RENDER ────────────────────────────────────────────────────────────────────
 window.renderCommunity = function() {
   subscribePosts();
   return `<div id="community-root"></div>`;
 };
+
+function renderPostCard(p) {
+  const liked = (p.likedBy||{})[currentUser?.uid];
+  const replyCount = p.replies ? Object.keys(p.replies).length : 0;
+  const repliesOpen = openReplies[p.id];
+  const repliesHtml = repliesOpen && p.replies
+    ? Object.entries(p.replies).sort((a,b) => (a[1].ts||0)-(b[1].ts||0)).map(([rid, r]) => `
+        <div style="display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid #222">
+          <div style="width:24px;height:24px;background:#333;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;color:var(--y);font-size:11px;flex-shrink:0">${escapeHtml(r.nick||'?')[0]}</div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+              <span style="color:var(--y);font-weight:700;font-size:12px">${escapeHtml(r.nick||'匿名')}</span>
+              <span style="color:#444;font-size:10px">${timeAgo(r.ts)}</span>
+            </div>
+            <div style="color:#ccc;font-size:13px;line-height:1.5;word-break:break-word">${escapeHtml(r.text||'')}</div>
+          </div>
+        </div>`).join('')
+    : '';
+
+  return `
+    <div style="background:var(--card);border-radius:14px;padding:13px 14px;margin-bottom:10px;border:1px solid var(--border)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:30px;height:30px;background:var(--y);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#1a1a1a;font-size:13px;flex-shrink:0">${escapeHtml(p.nick||'?')[0]}</div>
+          <span style="color:var(--y);font-weight:700;font-size:13px">${escapeHtml(p.nick||'匿名')}</span>
+        </div>
+        <span style="color:#444;font-size:11px">${timeAgo(p.ts)}</span>
+      </div>
+      <div style="color:#ddd;font-size:14px;line-height:1.6;word-break:break-word;margin-bottom:10px">${escapeHtml(p.text||'')}</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button onclick="window.likePost('${p.id}')" style="background:none;border:1px solid #2a2a2a;border-radius:20px;padding:4px 12px;color:${liked?'#ff6b6b':'#555'};font-size:12px;cursor:pointer;">
+          ❤️ ${p.likes||0}
+        </button>
+        <button onclick="window.toggleReplies('${p.id}')" style="background:none;border:1px solid #2a2a2a;border-radius:20px;padding:4px 12px;color:#555;font-size:12px;cursor:pointer;">
+          💬 ${replyCount}件の返信${replyCount>0?(repliesOpen?' ▲':' ▼'):''}
+        </button>
+        <button onclick="window.startReply('${p.id}','${escapeHtml(p.nick||'匿名')}')" style="background:none;border:1px solid #2a2a2a;border-radius:20px;padding:4px 12px;color:#888;font-size:12px;cursor:pointer;">
+          ↩ 返信
+        </button>
+      </div>
+      ${repliesHtml}
+    </div>`;
+}
 
 function renderCommunityDOM() {
   window.renderCommunityDOM = renderCommunityDOM;
@@ -612,7 +659,7 @@ function renderCommunityDOM() {
   if (!nickname) {
     root.innerHTML = `
       <div style="text-align:center;padding:40px 20px">
-        <div style="font-size:48px;margin-bottom:16px">🏟️</div>
+        <div style="font-size:48px;margin-bottom:16px">💬</div>
         <div style="color:var(--y);font-weight:900;font-size:20px;margin-bottom:8px">トーク</div>
         <div style="color:#666;font-size:13px;margin-bottom:28px">このアプリのファン同士で交流できる掲示板です。<br>まずニックネームを設定してください。</div>
         <input id="nick-input" type="text" maxlength="12" placeholder="ニックネーム（12文字以内）"
@@ -624,24 +671,11 @@ function renderCommunityDOM() {
     return;
   }
 
-  const postsHtml = communityPosts.length === 0
-    ? `<div style="text-align:center;padding:32px;color:#444;font-size:13px">まだ投稿がありません。<br>最初の投稿をしてみよう！</div>`
-    : communityPosts.map(p => `
-        <div style="background:var(--card);border-radius:14px;padding:13px 14px;margin-bottom:10px;border:1px solid var(--border)">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-            <div style="display:flex;align-items:center;gap:8px">
-              <div style="width:30px;height:30px;background:var(--y);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#1a1a1a;font-size:13px;flex-shrink:0">${escapeHtml(p.nick||'?')[0]}</div>
-              <span style="color:var(--y);font-weight:700;font-size:13px">${escapeHtml(p.nick||'匿名')}</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px">
-              <span style="color:#444;font-size:11px">${timeAgo(p.ts)}</span>
-              <button onclick="window.likePost('${p.id}')" style="background:none;border:1px solid #333;border-radius:20px;padding:3px 10px;color:${(p.likedBy||{})[currentUser?.uid] ? '#ff6b6b' : '#666'};font-size:12px;cursor:pointer;">
-                ❤️ ${p.likes||0}
-              </button>
-            </div>
-          </div>
-          <div style="color:#ddd;font-size:14px;line-height:1.6;word-break:break-word">${escapeHtml(p.text||'')}</div>
-        </div>`).join('');
+  const replyBanner = replyingTo ? `
+    <div style="display:flex;align-items:center;justify-content:space-between;background:#1e1e1e;border:1px solid color-mix(in srgb,var(--y) 30%,transparent);border-radius:10px;padding:8px 12px;margin-bottom:8px">
+      <span style="color:var(--y);font-size:12px">↩ <b>${escapeHtml(replyingTo.nick)}</b> さんへ返信中</span>
+      <button onclick="window.cancelReply()" style="background:none;border:none;color:#888;font-size:18px;cursor:pointer;line-height:1;">×</button>
+    </div>` : '';
 
   root.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
@@ -652,20 +686,22 @@ function renderCommunityDOM() {
       <button onclick="window.changeNickname()" style="background:none;border:1px solid #333;border-radius:8px;padding:4px 10px;color:#888;font-size:11px;cursor:pointer;font-family:inherit">👤 ${escapeHtml(nickname)}</button>
     </div>
 
-    <!-- 投稿フォーム -->
     <div style="background:var(--card);border-radius:14px;padding:13px;margin-bottom:14px;border:1px solid color-mix(in srgb,var(--y) 25%,transparent)">
-      <textarea id="post-input" placeholder="レイソルについて語ろう！" maxlength="200"
-        style="width:100%;background:#111;border:1px solid #333;border-radius:10px;padding:10px 12px;color:#fff;font-size:14px;font-family:inherit;resize:none;height:80px;outline:none;margin-bottom:10px;"></textarea>
+      ${replyBanner}
+      <textarea id="post-input" placeholder="${replyingTo ? '返信を入力...' : 'レイソルについて語ろう！'}" maxlength="200"
+        style="width:100%;background:#111;border:1px solid #333;border-radius:10px;padding:10px 12px;color:#fff;font-size:14px;font-family:inherit;resize:none;height:70px;outline:none;margin-bottom:10px;"></textarea>
       <div style="display:flex;align-items:center;justify-content:space-between">
         <span id="char-count" style="color:#555;font-size:11px">0 / 200</span>
-        <button onclick="window.submitPost()" style="background:var(--y);color:#1a1a1a;font-weight:900;font-size:13px;padding:8px 20px;border-radius:10px;border:none;cursor:pointer;font-family:inherit">投稿する</button>
+        <button onclick="window.submitPost()" style="background:var(--y);color:#1a1a1a;font-weight:900;font-size:13px;padding:8px 20px;border-radius:10px;border:none;cursor:pointer;font-family:inherit">
+          ${replyingTo ? '返信する' : '投稿する'}
+        </button>
       </div>
     </div>
 
-    <!-- 投稿一覧 -->
-    ${postsHtml}`;
+    ${communityPosts.length === 0
+      ? `<div style="text-align:center;padding:32px;color:#444;font-size:13px">まだ投稿がありません。<br>最初の投稿をしてみよう！</div>`
+      : communityPosts.map(p => renderPostCard(p)).join('')}`;
 
-  // 文字カウント
   const ta = document.getElementById('post-input');
   const cc = document.getElementById('char-count');
   if (ta && cc) ta.oninput = () => { cc.textContent = `${ta.value.length} / 200`; };
@@ -688,6 +724,23 @@ window.changeNickname = function() {
   }
 };
 
+window.startReply = function(postId, nick) {
+  replyingTo = { id: postId, nick };
+  openReplies[postId] = true;
+  renderCommunityDOM();
+  setTimeout(() => document.getElementById('post-input')?.focus(), 80);
+};
+
+window.cancelReply = function() {
+  replyingTo = null;
+  renderCommunityDOM();
+};
+
+window.toggleReplies = function(postId) {
+  openReplies[postId] = !openReplies[postId];
+  renderCommunityDOM();
+};
+
 window.submitPost = async function() {
   if (!currentUser) return alert('認証中です。しばらくお待ちください。');
   const ta = document.getElementById('post-input');
@@ -695,12 +748,24 @@ window.submitPost = async function() {
   if (!text) return;
   if (text.length > 200) return;
   try {
-    await push(ref(db, 'posts'), {
-      text, nick: nickname,
-      uid: currentUser.uid,
-      ts: serverTimestamp(),
-      likes: 0, likedBy: {}
-    });
+    if (replyingTo) {
+      // 返信
+      await push(ref(db, `posts/${replyingTo.id}/replies`), {
+        text, nick: nickname,
+        uid: currentUser.uid,
+        ts: serverTimestamp(),
+      });
+      openReplies[replyingTo.id] = true;
+      replyingTo = null;
+    } else {
+      // 新規投稿
+      await push(ref(db, 'posts'), {
+        text, nick: nickname,
+        uid: currentUser.uid,
+        ts: serverTimestamp(),
+        likes: 0, likedBy: {}
+      });
+    }
     if (ta) ta.value = '';
     const cc = document.getElementById('char-count');
     if (cc) cc.textContent = '0 / 200';
@@ -709,11 +774,10 @@ window.submitPost = async function() {
 
 window.likePost = async function(postId) {
   if (!currentUser) return;
-  const likeRef = ref(db, `posts/${postId}`);
   const post = communityPosts.find(p => p.id === postId);
   if (!post) return;
   const alreadyLiked = (post.likedBy||{})[currentUser.uid];
-  await update(likeRef, {
+  await update(ref(db, `posts/${postId}`), {
     likes: increment(alreadyLiked ? -1 : 1),
     [`likedBy/${currentUser.uid}`]: alreadyLiked ? null : true
   });
