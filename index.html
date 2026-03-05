@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="レイソル">
+<meta name="theme-color" content="#FFD700">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>柏レイソル ファンアプリ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+  :root { --y: #FFD700; --bg: #0f0f0f; --card: #1a1a1a; --card2: #111; --border: #252525; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: var(--bg); color: #ddd; font-family: 'Noto Sans JP', sans-serif; overflow: hidden; }
+
+  /* LAYOUT */
+  #app { display: flex; flex-direction: column; height: 100dvh; max-width: 430px; margin: 0 auto; position: relative; }
+
+  /* HEADER */
+  .header { background: var(--card); border-bottom: 3px solid var(--y); padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .logo { width: 42px; height: 42px; background: var(--y); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-family: 'Bebas Neue'; font-size: 24px; color: #1a1a1a; font-weight: 900; }
+  .header-title { font-family: 'Bebas Neue'; font-size: 20px; color: var(--y); letter-spacing: 2px; }
+  .header-sub { font-size: 10px; color: #888; letter-spacing: 1px; }
+  .live-badge { background: #ff4444; border-radius: 4px; padding: 2px 7px; font-size: 10px; font-weight: 700; color: #fff; }
+
+  /* BANNER */
+  .banner { margin: 10px 12px; background: var(--card); border-radius: 14px; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--y) 30%, transparent); flex-shrink: 0; }
+  .banner-label { color: var(--y); font-size: 10px; font-weight: 700; letter-spacing: 1px; margin-bottom: 8px; }
+  .banner-row { display: flex; align-items: center; justify-content: space-between; }
+  .banner-team { font-size: 13px; font-weight: 700; }
+  .banner-team-sub { font-size: 11px; color: #aaa; margin-bottom: 3px; }
+  .banner-vs { font-family: 'Bebas Neue'; font-size: 28px; color: #fff; letter-spacing: 2px; text-align: center; }
+  .banner-date { font-size: 10px; color: #888; text-align: center; }
+  .banner-btns { display: flex; gap: 6px; margin-top: 10px; }
+  .banner-btn { flex: 1; border-radius: 8px; padding: 7px; text-align: center; font-size: 11px; font-weight: 700; cursor: pointer; text-decoration: none; }
+  .banner-btn-y { background: var(--y); color: #1a1a1a; }
+  .banner-btn-ghost { border: 1px solid #ffffff22; color: #fff; }
+
+  /* TAB BAR */
+  .tabbar { display: flex; gap: 6px; padding: 6px 16px; overflow-x: auto; flex-shrink: 0; scrollbar-width: none; }
+  .tabbar::-webkit-scrollbar { display: none; }
+  .tab-btn { background: #1e1e1e; border: none; border-radius: 20px; padding: 7px 14px; font-size: 12px; font-weight: 700; color: #aaa; cursor: pointer; white-space: nowrap; font-family: 'Noto Sans JP'; }
+  .tab-btn.active { background: var(--y); color: #1a1a1a; }
+
+  /* CONTENT */
+  .content { flex: 1; overflow-y: auto; padding: 14px 14px 80px; overscroll-behavior: contain; }
+  .content.webview-mode { padding: 0; overflow: hidden; }
+
+  /* BOTTOM NAV */
+  .bottom-nav { position: absolute; bottom: 0; left: 0; right: 0; background: #111; border-top: 2px solid color-mix(in srgb, var(--y) 20%, transparent); display: flex; padding: 8px 0 env(safe-area-inset-bottom, 10px); }
+  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; background: none; border: none; font-family: 'Noto Sans JP'; }
+  .nav-icon { font-size: 20px; }
+  .nav-label { font-size: 10px; color: #555; }
+  .nav-item.active .nav-label { color: var(--y); font-weight: 700; }
+
+  /* CARDS */
+  .card { background: var(--card); border-radius: 14px; padding: 14px; margin-bottom: 10px; border: 1px solid var(--border); }
+  .card.hot { border-color: color-mix(in srgb, var(--y) 27%, transparent); }
+
+  /* NEWS */
+  .cat-chips { display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .cat-chips::-webkit-scrollbar { display: none; }
+  .chip { background: #1e1e1e; border: 1px solid #2a2a2a; border-radius: 20px; padding: 6px 12px; font-size: 11px; color: #777; cursor: pointer; white-space: nowrap; font-family: 'Noto Sans JP'; }
+  .chip.active { background: var(--y); border-color: var(--y); color: #1a1a1a; font-weight: 700; }
+  .news-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+  .cat-tag { border-radius: 20px; padding: 2px 8px; font-size: 10px; font-weight: 700; border: 1px solid; }
+  .news-source { font-size: 10px; color: #555; }
+  .news-date { font-size: 10px; color: #555; margin-left: auto; }
+  .hot-badge { background: #ff4444; color: #fff; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 4px; }
+  .news-title { color: #fff; font-weight: 700; font-size: 14px; line-height: 1.5; margin-bottom: 6px; }
+  .news-summary { color: #888; font-size: 12px; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .news-read { color: var(--y); font-weight: 700; font-size: 11px; margin-top: 8px; }
+  .card a { text-decoration: none; display: block; }
+
+  /* MATCHES */
+  .section-label { color: #666; font-size: 12px; font-weight: 500; margin-bottom: 10px; }
+  .match-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .comp-text { color: #666; font-size: 10px; }
+  .status-badge { background: #2a2a2a; border-radius: 10px; padding: 2px 8px; font-size: 10px; font-weight: 700; color: #666; }
+  .status-badge.upcoming { background: color-mix(in srgb, var(--y) 13%, transparent); color: var(--y); }
+  .match-row { display: flex; align-items: center; justify-content: space-between; }
+  .team-name { font-size: 13px; font-weight: 700; }
+  .team-name.reysol { color: var(--y); }
+  .score-box { text-align: center; padding: 0 16px; }
+  .score-text { font-family: 'Bebas Neue'; font-size: 28px; letter-spacing: 4px; }
+  .vs-text { font-family: 'Bebas Neue'; font-size: 22px; color: #555; letter-spacing: 2px; }
+  .venue-text { color: #555; font-size: 10px; margin-top: 6px; text-align: center; }
+  .scorers-box { margin-top: 10px; padding: 8px; background: var(--card2); border-radius: 8px; border-left: 3px solid var(--y); }
+  .scorers-title { color: var(--y); font-weight: 700; font-size: 10px; margin-bottom: 4px; }
+  .scorer-item { color: #ccc; font-size: 11px; }
+  .match-card { cursor: pointer; }
+  .match-card.win { border-color: color-mix(in srgb, var(--y) 27%, transparent); }
+
+  /* BBS WEBVIEW */
+  .webview-container { display: flex; flex-direction: column; height: 100%; }
+  .webview-header { display: flex; align-items: center; padding: 10px 16px; background: var(--card); border-bottom: 1px solid color-mix(in srgb, var(--y) 20%, transparent); gap: 8px; flex-shrink: 0; }
+  .webview-hint { background: var(--card2); padding: 5px; text-align: center; font-size: 10px; color: #444; border-bottom: 1px solid #222; flex-shrink: 0; }
+  .webview-hint.loading { background: color-mix(in srgb, var(--y) 13%, transparent); color: var(--y); font-weight: 700; }
+  .page-nav { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 8px; background: var(--card2); border-bottom: 1px solid #222; flex-shrink: 0; }
+  .page-btn { border-radius: 16px; padding: 5px 16px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid; font-family: 'Noto Sans JP'; }
+  .page-btn.active { background: color-mix(in srgb, var(--y) 13%, transparent); border-color: color-mix(in srgb, var(--y) 33%, transparent); color: var(--y); }
+  .page-btn.disabled { background: var(--card); border-color: #2a2a2a; color: #444; cursor: default; }
+  .page-num { color: #666; font-size: 12px; }
+  .bbs-iframe { flex: 1; border: none; width: 100%; background: var(--bg); }
+  .action-btn { border: 1px solid; border-radius: 8px; padding: 5px 10px; font-size: 10px; font-weight: 700; cursor: pointer; font-family: 'Noto Sans JP'; background: none; }
+  .reload-btn { border-color: color-mix(in srgb, var(--y) 40%, transparent); color: var(--y); background: color-mix(in srgb, var(--y) 9%, transparent); }
+  .reload-btn:disabled { border-color: #333; color: #444; background: var(--card2); cursor: default; }
+  .post-btn { border-color: color-mix(in srgb, var(--y) 27%, transparent); color: var(--y); background: color-mix(in srgb, var(--y) 7%, transparent); }
+
+  /* STANDINGS */
+  .standings-table { background: var(--card); border-radius: 14px; overflow: hidden; border: 1px solid var(--border); }
+  .standings-head { display: grid; grid-template-columns: 24px 1fr 28px 28px 28px 28px 30px 36px; gap: 4px; padding: 10px 12px; background: var(--card2); font-size: 10px; color: #666; font-weight: 700; border-bottom: 1px solid #2a2a2a; }
+  .standings-row { display: grid; grid-template-columns: 24px 1fr 28px 28px 28px 28px 30px 36px; gap: 4px; padding: 11px 12px; align-items: center; border-bottom: 1px solid #222; }
+  .standings-row:last-child { border-bottom: none; }
+  .standings-row.reysol { background: color-mix(in srgb, var(--y) 8%, transparent); }
+  .sc { font-size: 12px; text-align: center; color: #888; }
+  .sc.pos { color: #666; font-weight: 700; }
+  .sc.pos.top { color: var(--y); }
+  .sc.team { text-align: left; color: #ddd; font-size: 12px; }
+  .sc.team.reysol { color: var(--y); font-weight: 700; }
+  .sc.win { color: #4caf50; }
+  .sc.lose { color: #f44336; }
+  .sc.pts { font-weight: 700; color: #fff; }
+  .sc.pts.reysol { color: var(--y); }
+
+  /* ANIMATION */
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .fade-in { animation: fadeIn 0.2s ease both; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">R</div>
+      <div>
+        <div class="header-title">KASHIWA REYSOL</div>
+        <div class="header-sub">柏レイソル 公式ファンアプリ</div>
+      </div>
+    </div>
+    <div class="live-badge">LIVE</div>
+  </div>
+
+  <div id="banner"></div>
+
+  <div class="tabbar" id="tabbar"></div>
+
+  <div class="content" id="content"></div>
+
+  <nav class="bottom-nav" id="bottom-nav"></nav>
+</div>
+
+<script>
+const Y = '#FFD700';
+
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const matches = [
+  { id:5, date:'2026年3月7日(土)', time:'13:00', home:'ジェフ千葉', away:'柏レイソル', homeScore:null, awayScore:null, venue:'フクダ電子アリーナ', status:'upcoming', competition:'J1百年構想リーグ EAST 第5節' },
+  { id:6, date:'2026年3月14日(土)', time:'14:00', home:'柏レイソル', away:'FC町田ゼルビア', homeScore:null, awayScore:null, venue:'三協フロンテア柏スタジアム', status:'upcoming', competition:'J1百年構想リーグ EAST 第6節' },
+  { id:4, date:'2026年2月28日(土)', time:'試合終了', home:'FC東京', away:'柏レイソル', homeScore:0, awayScore:2, venue:'味の素スタジアム', status:'finished', competition:'J1百年構想リーグ EAST 第4節', scorers:["垣田裕暉 54'","瀬川祐輔 82'"] },
+  { id:3, date:'2026年2月21日(土)', time:'試合終了', home:'鹿島アントラーズ', away:'柏レイソル', homeScore:2, awayScore:0, venue:'MEIJI YASUDA J1 PARK茨城', status:'finished', competition:'J1百年構想リーグ EAST 第3節', scorers:[] },
+  { id:2, date:'2026年2月15日(日)', time:'試合終了', home:'柏レイソル', away:'東京ヴェルディ', homeScore:1, awayScore:2, venue:'三協フロンテア柏スタジアム', status:'finished', competition:'J1百年構想リーグ EAST 第2節', scorers:["小泉佳穂 33'"] },
+  { id:1, date:'2026年2月8日(日)', time:'試合終了', home:'川崎フロンターレ', away:'柏レイソル', homeScore:5, awayScore:3, venue:'Uvanceとどろきスタジアム', status:'finished', competition:'J1百年構想リーグ EAST 第1節', scorers:["垣田裕暉","瀬川祐輔","小見洋太"] },
+];
+
+const news = [
+  { id:1, category:'試合結果', color:'#4caf50', source:'FOOTBALL ZONE', date:'2026/03/01', title:"先発復帰で即結果「相手の前で勝負」指揮官も称賛「偉大な選手」…柏の『汗かき役』が見せた姿勢", summary:'FC東京戦で先発復帰した瀬川祐輔が追加点を決め初勝利に貢献。リカルド ロドリゲス監督も試合後に高く評価するコメントを残した。', url:'https://footballzone.net/', hot:true },
+  { id:2, category:'試合結果', color:'#4caf50', source:'ゲキサカ', date:'2026/03/01', title:'「わかりやすく大きな修正ポイント」3連敗で見えた課題をポジティブにとらえる柏MF小泉佳穂', summary:'柏レイソルMF小泉佳穂がFC東京戦後に語ったコメント。3連敗から脱出し、チームの課題と向き合いながらも前向きな姿勢を示した。', url:'https://gekisaka.jp/soccer/detail/?173600-173600-cm', hot:true },
+  { id:3, category:'マッチコラム', color:'#e91e63', source:'柏フットボールジャーナル', date:'2026/02/23', title:'決定力不足と脆弱なセットプレー。選手のコンディション不良も相まって苦しい戦いが続く／J1 第3節 鹿島 vs 柏【マッチコラム】', summary:'第3節鹿島戦（2-0敗戦）を詳細レビュー。決定機を複数回逃した前半の決定力不足と、セットプレーから失点した守備の課題を分析。', url:'https://www1.targma.jp/kashiwa/2026/02/23/post31056/', hot:false },
+  { id:4, category:'マッチコラム', color:'#e91e63', source:'柏フットボールジャーナル', date:'2026/02/20', title:'相手を自陣に押し下げよ。数字が示す柏の破壊力と、それを無力化する鹿島のしたたかなビルドアップ／【プレビュー】', summary:'第3節 鹿島 vs 柏のプレビュー。ゴール期待値の高さが勝利を保証しない現状と、鹿島のビルドアップへの対策を詳細に考察。', url:'https://www1.targma.jp/kashiwa/2026/02/20/post31040/', hot:false },
+  { id:5, category:'コラム', color:'#e91e63', source:'柏フットボールジャーナル', date:'2026/01/16', title:'充実のキャンプ序盤を振り返る【2026年指宿キャンプレポート】', summary:'2025年J1 2位の勢いそのままに始動した2026年。古賀太陽が「去年よりも積み上げられる」と語るなど、戦術浸透度への確信が随所に見られたキャンプ序盤を詳報。', url:'https://www1.targma.jp/kashiwa/2026/01/16/post30872/', hot:false },
+  { id:6, category:'インタビュー', color:Y, source:'柏レイソル公式', date:'2026/02/14', title:'小見洋太選手 1分クエスチョン――新シーズンへの意気込みを語る', summary:'今季の目標、チームの雰囲気、プライベートの一面まで。小見洋太が公式動画で率直に答えた。', url:'https://www.reysol.co.jp/news/', hot:false },
+  { id:7, category:'移籍情報', color:'#2196f3', source:'Goal.com', date:'2026/02/28', title:'柏レイソル、中央大DFの2027年加入内定を発表「身を粉にして柏のために闘います」', summary:'中央大学3年・常藤奏がDF2027年加入内定。興国高出身で全日本大学選抜にも選ばれた注目の若手DFが柏入りを決めた。', url:'https://www.goal.com/jp/', hot:false },
+  { id:8, category:'クラブ情報', color:'#ff9800', source:'柏レイソル公式', date:'2026/02/01', title:'2026シーズンポスター完成のお知らせ——古賀太陽・垣田裕暉・小見洋太・久保藤次郎の4選手が登場', summary:'2026シーズンの公式ポスターが完成。4選手が勢揃いしたデザインで、柏市内の複数のショップにて配布中。', url:'https://www.reysol.co.jp/news/', hot:false },
+];
+
+const standings = [
+  { pos:1, team:'鹿島アントラーズ', played:4, won:3, draw:0, lost:1, gf:7, ga:3, pts:10 },
+  { pos:2, team:'FC町田ゼルビア', played:4, won:3, draw:1, lost:1, gf:9, ga:7, pts:9 },
+  { pos:3, team:'東京ヴェルディ', played:4, won:3, draw:1, lost:1, gf:9, ga:7, pts:8 },
+  { pos:4, team:'浦和レッズ', played:4, won:2, draw:0, lost:2, gf:7, ga:4, pts:7 },
+  { pos:5, team:'川崎フロンターレ', played:4, won:3, draw:2, lost:1, gf:8, ga:7, pts:7 },
+  { pos:6, team:'FC東京', played:4, won:3, draw:2, lost:1, gf:4, ga:5, pts:7 },
+  { pos:7, team:'水戸ホーリーホック', played:4, won:1, draw:1, lost:3, gf:6, ga:8, pts:4 },
+  { pos:8, team:'柏レイソル', played:4, won:1, draw:0, lost:3, gf:6, ga:9, pts:3 },
+  { pos:9, team:'横浜F・マリノス', played:4, won:1, draw:0, lost:3, gf:5, ga:8, pts:3 },
+  { pos:10, team:'ジェフ千葉', played:4, won:0, draw:0, lost:4, gf:2, ga:5, pts:2 },
+];
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let activeTab = 'news';
+let newsFilter = 'すべて';
+let expandedMatch = null;
+let bbsPage = 1;
+let bbsRefreshKey = 0;
+
+// ── BANNER ────────────────────────────────────────────────────────────────────
+function renderBanner() {
+  const showBanner = activeTab !== 'board';
+  const bannerEl = document.getElementById('banner');
+  if (!showBanner) { bannerEl.innerHTML = ''; return; }
+  bannerEl.innerHTML = `
+    <div class="banner fade-in">
+      <div class="banner-label">📅 NEXT MATCH — J1百年構想リーグ EAST 第5節</div>
+      <div class="banner-row">
+        <div style="flex:1;text-align:center">
+          <div class="banner-team-sub">HOME</div>
+          <div class="banner-team">ジェフ千葉</div>
+        </div>
+        <div style="text-align:center;padding:0 12px">
+          <div class="banner-vs">VS</div>
+          <div class="banner-date">3/7(土) 13:00</div>
+        </div>
+        <div style="flex:1;text-align:center">
+          <div class="banner-team-sub">AWAY</div>
+          <div class="banner-team" style="color:var(--y)">柏レイソル</div>
+        </div>
+      </div>
+      <div class="banner-btns">
+        <a href="https://www.reysol.co.jp/ticket/" target="_blank" class="banner-btn banner-btn-y">チケット購入</a>
+        <a href="https://www.reysol.co.jp/game/results/" target="_blank" class="banner-btn banner-btn-ghost">試合情報詳細</a>
+      </div>
+    </div>`;
+}
+
+// ── TAB BAR ───────────────────────────────────────────────────────────────────
+const tabs = [
+  { key:'news', icon:'📰', label:'ニュース' },
+  { key:'matches', icon:'⚽', label:'試合情報' },
+  { key:'board', icon:'💬', label:'掲示板' },
+  { key:'standings', icon:'📊', label:'順位表' },
+];
+const navItems = [
+  { key:'news', icon:'📰', label:'ニュース' },
+  { key:'matches', icon:'⚽', label:'試合' },
+  { key:'board', icon:'💬', label:'掲示板' },
+  { key:'standings', icon:'📊', label:'順位' },
+];
+
+function renderNav() {
+  document.getElementById('tabbar').innerHTML = tabs.map(t =>
+    `<button class="tab-btn ${activeTab===t.key?'active':''}" onclick="setTab('${t.key}')">${t.icon} ${t.label}</button>`
+  ).join('');
+  document.getElementById('bottom-nav').innerHTML = navItems.map(it =>
+    `<button class="nav-item ${activeTab===it.key?'active':''}" onclick="setTab('${it.key}')">
+      <span class="nav-icon">${it.icon}</span>
+      <span class="nav-label">${it.label}</span>
+    </button>`
+  ).join('');
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+function renderNews() {
+  const categories = ['すべて','試合結果','マッチコラム','コラム','インタビュー','移籍情報','クラブ情報'];
+  const filtered = newsFilter === 'すべて' ? news : news.filter(n => n.category === newsFilter);
+  return `
+    <div class="cat-chips">
+      ${categories.map(c => `<button class="chip ${newsFilter===c?'active':''}" onclick="setNewsFilter('${c}')">${c}</button>`).join('')}
+    </div>
+    ${filtered.map((a,i) => `
+      <a href="${a.url}" target="_blank" class="card ${a.hot?'hot':''} fade-in" style="animation-delay:${i*0.04}s;display:block;text-decoration:none">
+        ${a.hot ? '<div style="display:flex;justify-content:flex-end;margin-bottom:4px"><span class="hot-badge">🔥 HOT</span></div>' : ''}
+        <div class="news-meta">
+          <span class="cat-tag" style="color:${a.color};background:${a.color}22;border-color:${a.color}55">${a.category}</span>
+          <span class="news-source">${a.source}</span>
+          <span class="news-date">${a.date}</span>
+        </div>
+        <div class="news-title">${a.title}</div>
+        <div class="news-summary">${a.summary}</div>
+        <div class="news-read">記事を読む →</div>
+      </a>`).join('')}`;
+}
+
+function renderMatches() {
+  return `
+    <div class="section-label">2026シーズン スケジュール</div>
+    ${matches.map((m,i) => {
+      const isReysolHome = m.home === '柏レイソル';
+      const isReysolAway = m.away === '柏レイソル';
+      const won = m.status==='finished' && (isReysolHome ? m.homeScore > m.awayScore : m.awayScore > m.homeScore);
+      const expanded = expandedMatch === m.id;
+      return `
+      <div class="card match-card ${won?'win':''} fade-in" style="animation-delay:${i*0.05}s" onclick="toggleMatch(${m.id})">
+        <div class="match-header">
+          <span class="comp-text">${m.competition}</span>
+          <span class="status-badge ${m.status==='upcoming'?'upcoming':''}">${m.status==='finished'?'終了':`${m.time} KO`}</span>
+        </div>
+        <div class="match-row">
+          <div style="flex:1"><span class="team-name ${isReysolHome?'reysol':''}">${m.home}</span></div>
+          <div class="score-box">
+            ${m.status==='finished'
+              ? `<span class="score-text"><span style="color:${isReysolHome?Y:'#fff'}">${m.homeScore}</span><span style="color:#555"> - </span><span style="color:${isReysolAway?Y:'#fff'}">${m.awayScore}</span></span>`
+              : `<span class="vs-text">VS</span>`}
+          </div>
+          <div style="flex:1;text-align:right"><span class="team-name ${isReysolAway?'reysol':''}">${m.away}</span></div>
+        </div>
+        <div class="venue-text">📍 ${m.venue} · ${m.date}</div>
+        ${expanded && m.scorers && m.scorers.length > 0 ? `
+          <div class="scorers-box">
+            <div class="scorers-title">⚽ 得点者</div>
+            ${m.scorers.map(s=>`<div class="scorer-item">${s}</div>`).join('')}
+          </div>` : ''}
+      </div>`}).join('')}`;
+}
+
+function renderBoard() {
+  const url = `https://bm.best-hit.tv/reysol/?page=${bbsPage}`;
+  return `
+    <div class="webview-container">
+      <div class="webview-header">
+        <div style="flex:1">
+          <div style="color:var(--y);font-weight:700;font-size:13px">超柏レイソル掲示板</div>
+          <div style="color:#555;font-size:10px;margin-top:1px">リアルタイム表示中</div>
+        </div>
+        <button class="action-btn reload-btn" id="bbs-reload-btn" onclick="reloadBBS()" title="更新">🔄</button>
+        <a href="${url}" target="_blank" class="action-btn post-btn">✏ 投稿 ↗</a>
+      </div>
+      <div class="webview-hint" id="bbs-hint">↓ 下に引っ張って更新</div>
+      <div class="page-nav">
+        <button class="page-btn ${bbsPage===1?'disabled':'active'}" onclick="setBBSPage(${bbsPage-1})" ${bbsPage===1?'disabled':''}>← 前</button>
+        <span class="page-num">ページ ${bbsPage}</span>
+        <button class="page-btn active" onclick="setBBSPage(${bbsPage+1})">次 →</button>
+      </div>
+      <iframe id="bbs-iframe" class="bbs-iframe" src="${url}"
+        onload="onBBSLoad(this)"></iframe>
+    </div>`;
+}
+
+function renderStandings() {
+  return `
+    <div class="section-label">明治安田J1百年構想リーグ EAST 2026 第4節終了時</div>
+    <div class="standings-table">
+      <div class="standings-head">
+        <span>#</span><span>チーム</span><span style="text-align:center">試</span>
+        <span style="text-align:center">勝</span><span style="text-align:center">分</span>
+        <span style="text-align:center">負</span><span style="text-align:center">得失</span>
+        <span style="text-align:center">勝点</span>
+      </div>
+      ${standings.map(r => {
+        const isR = r.team === '柏レイソル';
+        const gd = r.gf - r.ga;
+        return `
+        <div class="standings-row ${isR?'reysol':''}">
+          <span class="sc pos ${r.pos===1?'top':''}">${r.pos}</span>
+          <span class="sc team ${isR?'reysol':''}">${r.team}</span>
+          <span class="sc">${r.played}</span>
+          <span class="sc win">${r.won}</span>
+          <span class="sc">${r.draw}</span>
+          <span class="sc lose">${r.lost}</span>
+          <span class="sc">${gd>0?'+':''}${gd}</span>
+          <span class="sc pts ${isR?'reysol':''}">${r.pts}</span>
+        </div>`}).join('')}
+    </div>`;
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function render() {
+  const content = document.getElementById('content');
+  renderBanner();
+  renderNav();
+
+  if (activeTab === 'board') {
+    content.className = 'content webview-mode';
+    content.innerHTML = renderBoard();
+  } else {
+    content.className = 'content';
+    if (activeTab === 'news') content.innerHTML = renderNews();
+    else if (activeTab === 'matches') content.innerHTML = renderMatches();
+    else if (activeTab === 'standings') content.innerHTML = renderStandings();
+  }
+}
+
+// ── ACTIONS ───────────────────────────────────────────────────────────────────
+function setTab(key) {
+  activeTab = key;
+  render();
+  document.getElementById('content').scrollTop = 0;
+}
+
+function setNewsFilter(cat) {
+  newsFilter = cat;
+  render();
+}
+
+function toggleMatch(id) {
+  expandedMatch = expandedMatch === id ? null : id;
+  render();
+}
+
+function setBBSPage(p) {
+  if (p < 1) return;
+  bbsPage = p;
+  render();
+}
+
+function reloadBBS() {
+  const iframe = document.getElementById('bbs-iframe');
+  const btn = document.getElementById('bbs-reload-btn');
+  const hint = document.getElementById('bbs-hint');
+  if (!iframe) return;
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+  if (hint) { hint.className = 'webview-hint loading'; hint.textContent = '⏳ 読み込み中...'; }
+  iframe.src = iframe.src;
+}
+
+function onBBSLoad(iframe) {
+  const btn = document.getElementById('bbs-reload-btn');
+  const hint = document.getElementById('bbs-hint');
+  if (btn) { btn.disabled = false; btn.textContent = '🔄'; }
+  if (hint) { hint.className = 'webview-hint'; hint.textContent = '↓ 下に引っ張って更新'; }
+  try {
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    // Inject dark CSS
+    const style = doc.createElement('style');
+    style.textContent = 'html,body{background:#0f0f0f!important;color:#ddd!important;font-size:13px!important;margin:0!important;padding:6px!important}a{color:#FFD700!important}hr{border-color:#333!important}input,textarea,select{background:#1a1a1a!important;color:#ddd!important;border:1px solid #444!important;border-radius:6px!important;padding:5px!important;width:100%!important}';
+    doc.head.appendChild(style);
+    // Scale to fit
+    const screenW = iframe.clientWidth;
+    const contentW = doc.body.scrollWidth;
+    if (contentW > screenW + 4) {
+      const ratio = screenW / contentW;
+      doc.body.style.transformOrigin = '0 0';
+      doc.body.style.transform = `scale(${ratio})`;
+      doc.body.style.width = contentW + 'px';
+      doc.documentElement.style.height = Math.ceil(doc.body.scrollHeight * ratio) + 'px';
+      doc.documentElement.style.overflowX = 'hidden';
+    }
+  } catch(e) {}
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+render();
+
+// Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
