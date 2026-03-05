@@ -458,20 +458,8 @@ function render() {
     content.innerHTML = renderBoard();
   } else if (activeTab === 'community') {
     content.className = 'content';
-    if (window.renderCommunity) {
-      content.innerHTML = window.renderCommunity();
-    } else {
-      content.innerHTML = '<div id="community-root"></div>';
-      // モジュール読み込み待ち（最大3秒）
-      let tries = 0;
-      const wait = setInterval(() => {
-        tries++;
-        if (window.renderCommunity) {
-          clearInterval(wait);
-          document.getElementById('community-root') && (document.getElementById('content').innerHTML = window.renderCommunity());
-        } else if (tries > 30) clearInterval(wait);
-      }, 100);
-    }
+    content.innerHTML = '<div id="community-root"></div>';
+    if (window.showCommunityTab) window.showCommunityTab();
   } else {
     content.className = 'content';
     if (activeTab === 'news') content.innerHTML = renderNews();
@@ -549,13 +537,13 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 
-<!-- Firebase SDK -->
-<script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
-import { getDatabase, ref, push, onValue, serverTimestamp, query, orderByChild, limitToLast, update, increment } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
-
-const firebaseConfig = {
+<!-- Firebase (compat版・通常scriptで動作) -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+<script>
+// ── FIREBASE INIT ─────────────────────────────────────────────────────────────
+firebase.initializeApp({
   apiKey: "AIzaSyBjCmDVUnUX80d_7KudYAHX9FaJun3l7ko",
   authDomain: "reysol-app.firebaseapp.com",
   databaseURL: "https://reysol-app-default-rtdb.firebaseio.com",
@@ -563,11 +551,9 @@ const firebaseConfig = {
   storageBucket: "reysol-app.firebasestorage.app",
   messagingSenderId: "50578755693",
   appId: "1:50578755693:web:ffa56d09041d8e3733af64"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getDatabase(app);
+});
+const auth = firebase.auth();
+const db   = firebase.database();
 
 // ── AVATAR COLOR ──────────────────────────────────────────────────────────────
 const AVATAR_COLORS = [
@@ -581,183 +567,179 @@ function avatarColor(uid) {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
-// ── STATE ──────────────────────────────────────────────────────────────────────
-let currentUser = null;
-let nickname = localStorage.getItem('reysol_nickname') || '';
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let currentUser  = null;
+let nickname     = localStorage.getItem('reysol_nickname') || '';
 let communityPosts = [];
-let unsubPosts = null;
+let unsubPosts   = null;
+let replyingTo   = null;
+let openReplies  = {};
 
-// ── AUTH ───────────────────────────────────────────────────────────────────────
-signInAnonymously(auth);
-onAuthStateChanged(auth, user => {
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+auth.signInAnonymously();
+auth.onAuthStateChanged(user => {
   currentUser = user;
   renderCommunityDOM();
 });
 
-// ── POSTS LISTENER ────────────────────────────────────────────────────────────
+// ── SUBSCRIBE ─────────────────────────────────────────────────────────────────
 function subscribePosts() {
   if (unsubPosts) return;
-  const q = query(ref(db, 'posts'), orderByChild('ts'), limitToLast(50));
-  unsubPosts = onValue(q, snap => {
+  const q = db.ref('posts').orderByChild('ts').limitToLast(50);
+  unsubPosts = q.on('value', snap => {
     communityPosts = [];
-    snap.forEach(child => {
-      communityPosts.unshift({ id: child.key, ...child.val() });
-    });
+    snap.forEach(child => communityPosts.unshift({ id: child.key, ...child.val() }));
     renderCommunityDOM();
   });
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
-function escapeHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function _esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-
 function timeAgo(ts) {
   if (!ts) return '';
-  const diff = Date.now() - ts;
-  if (diff < 60000) return 'たった今';
-  if (diff < 3600000) return `${Math.floor(diff/60000)}分前`;
-  if (diff < 86400000) return `${Math.floor(diff/3600000)}時間前`;
-  return `${Math.floor(diff/86400000)}日前`;
+  const d = Date.now() - ts;
+  if (d < 60000) return 'たった今';
+  if (d < 3600000) return Math.floor(d/60000) + '分前';
+  if (d < 86400000) return Math.floor(d/3600000) + '時間前';
+  return Math.floor(d/86400000) + '日前';
 }
 
-// ── STATE ─────────────────────────────────────────────────────────────────────
-let replyingTo = null; // { id, nick } | null
-let openReplies = {}; // postId -> bool
-
 // ── RENDER ────────────────────────────────────────────────────────────────────
-window.renderCommunity = function() {
-  subscribePosts();
-  return `<div id="community-root"></div>`;
-};
-
 function renderPostCard(p) {
-  const liked = (p.likedBy||{})[currentUser?.uid];
+  const liked = (p.likedBy||{})[currentUser && currentUser.uid];
   const replyCount = p.replies ? Object.keys(p.replies).length : 0;
-  const repliesOpen = openReplies[p.id];
   const color = avatarColor(p.uid);
+  const open  = openReplies[p.id];
 
-  const repliesHtml = repliesOpen && p.replies
-    ? Object.entries(p.replies).sort((a,b) => (a[1].ts||0)-(b[1].ts||0)).map(([rid, r]) => {
-        const rc = avatarColor(r.uid);
-        return `
-        <div style="display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid #222">
-          <div style="width:24px;height:24px;background:${rc};border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:11px;flex-shrink:0">${escapeHtml(r.nick||'?')[0]}</div>
-          <div style="flex:1">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-              <span style="color:${rc};font-weight:700;font-size:12px">${escapeHtml(r.nick||'匿名')}</span>
-              <span style="color:#444;font-size:10px">${timeAgo(r.ts)}</span>
+  const repliesHtml = open && p.replies
+    ? Object.entries(p.replies)
+        .sort((a,b) => (a[1].ts||0)-(b[1].ts||0))
+        .map(([,r]) => {
+          const rc = avatarColor(r.uid);
+          return `<div style="display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid #222">
+            <div style="width:24px;height:24px;background:${rc};border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:11px;flex-shrink:0">${_esc(r.nick||'?')[0]}</div>
+            <div style="flex:1">
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                <span style="color:${rc};font-weight:700;font-size:12px">${_esc(r.nick||'匿名')}</span>
+                <span style="color:#444;font-size:10px">${timeAgo(r.ts)}</span>
+              </div>
+              <div style="color:#ccc;font-size:13px;line-height:1.5;word-break:break-word">${_esc(r.text||'')}</div>
             </div>
-            <div style="color:#ccc;font-size:13px;line-height:1.5;word-break:break-word">${escapeHtml(r.text||'')}</div>
-            ${r.imageUrl ? `<img src="${r.imageUrl}" style="margin-top:8px;max-width:100%;border-radius:10px;max-height:200px;object-fit:cover;" loading="lazy">` : ''}
-          </div>
-        </div>`;}).join('')
+          </div>`;
+        }).join('')
     : '';
 
-  return `
-    <div style="background:var(--card);border-radius:14px;padding:13px 14px;margin-bottom:10px;border:1px solid var(--border)">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div style="display:flex;align-items:center;gap:8px">
-          <div style="width:32px;height:32px;background:${color};border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px;flex-shrink:0">${escapeHtml(p.nick||'?')[0]}</div>
-          <span style="color:${color};font-weight:700;font-size:13px">${escapeHtml(p.nick||'匿名')}</span>
-        </div>
-        <span style="color:#444;font-size:11px">${timeAgo(p.ts)}</span>
+  return `<div style="background:var(--card);border-radius:14px;padding:13px 14px;margin-bottom:10px;border:1px solid var(--border)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:32px;height:32px;background:${color};border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px;flex-shrink:0">${_esc(p.nick||'?')[0]}</div>
+        <span style="color:${color};font-weight:700;font-size:13px">${_esc(p.nick||'匿名')}</span>
       </div>
-      <div style="color:#ddd;font-size:14px;line-height:1.6;word-break:break-word">${escapeHtml(p.text||'')}</div>
-      ${p.imageUrl ? `<img src="${p.imageUrl}" style="width:100%;border-radius:10px;max-height:260px;object-fit:cover;margin-top:10px;" loading="lazy">` : ''}
-      <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
-        <button onclick="window.likePost('${p.id}')" style="background:none;border:1px solid #2a2a2a;border-radius:20px;padding:4px 12px;color:${liked?'#ff6b6b':'#555'};font-size:12px;cursor:pointer;">
-          ❤️ ${p.likes||0}
-        </button>
-        <button onclick="window.toggleReplies('${p.id}')" style="background:none;border:1px solid #2a2a2a;border-radius:20px;padding:4px 12px;color:#555;font-size:12px;cursor:pointer;">
-          💬 ${replyCount}${replyCount>0?(repliesOpen?' ▲':' ▼'):''}
-        </button>
-        <button onclick="window.startReply('${p.id}','${escapeHtml(p.nick||'匿名')}')" style="background:none;border:1px solid #2a2a2a;border-radius:20px;padding:4px 12px;color:#777;font-size:12px;cursor:pointer;">
-          ↩ 返信
-        </button>
-      </div>
-      ${repliesHtml}
-    </div>`;
+      <span style="color:#444;font-size:11px">${timeAgo(p.ts)}</span>
+    </div>
+    <div style="color:#ddd;font-size:14px;line-height:1.6;word-break:break-word">${_esc(p.text||'')}</div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button onclick="communityLike('${p.id}')" style="background:none;border:1px solid #2a2a2a;border-radius:20px;padding:4px 12px;color:${liked?'#ff6b6b':'#555'};font-size:12px;cursor:pointer;">❤️ ${p.likes||0}</button>
+      <button onclick="communityToggleReplies('${p.id}')" style="background:none;border:1px solid #2a2a2a;border-radius:20px;padding:4px 12px;color:#555;font-size:12px;cursor:pointer;">💬 ${replyCount}${replyCount>0?(open?' ▲':' ▼'):''}</button>
+      <button onclick="communityStartReply('${p.id}','${_esc(p.nick||'匿名')}')" style="background:none;border:1px solid #2a2a2a;border-radius:20px;padding:4px 12px;color:#777;font-size:12px;cursor:pointer;">↩ 返信</button>
+    </div>
+    ${repliesHtml}
+  </div>`;
 }
 
 function renderCommunityDOM() {
-  window.renderCommunityDOM = renderCommunityDOM;
   const root = document.getElementById('community-root');
   if (!root) return;
 
-  // ── ニックネーム未設定 ────────────────────────────────────────
   if (!nickname) {
-    root.innerHTML = `
-      <div style="text-align:center;padding:40px 20px">
-        <div style="font-size:48px;margin-bottom:16px">💬</div>
-        <div style="color:var(--y);font-weight:900;font-size:20px;margin-bottom:8px">トーク</div>
-        <div style="color:#666;font-size:13px;margin-bottom:28px">このアプリのファン同士で交流できる掲示板です。<br>まずニックネームを設定してください。</div>
-        <input id="nick-input" type="text" maxlength="12" placeholder="ニックネーム（12文字以内）"
-          style="width:100%;background:#1e1e1e;border:1px solid #444;border-radius:10px;padding:12px 14px;color:#fff;font-size:15px;font-family:inherit;margin-bottom:12px;outline:none;">
-        <button onclick="window.saveNickname()" style="width:100%;background:var(--y);color:#1a1a1a;font-weight:900;font-size:15px;padding:13px;border-radius:12px;border:none;cursor:pointer;font-family:inherit">
-          トークに参加する ⚽
-        </button>
-      </div>`;
+    root.innerHTML = `<div style="text-align:center;padding:40px 20px">
+      <div style="font-size:48px;margin-bottom:16px">💬</div>
+      <div style="color:var(--y);font-weight:900;font-size:20px;margin-bottom:8px">トーク</div>
+      <div style="color:#666;font-size:13px;margin-bottom:28px">ファン同士で交流できる掲示板です。<br>まずニックネームを設定してください。</div>
+      <input id="nick-input" type="text" maxlength="12" placeholder="ニックネーム（12文字以内）"
+        style="width:100%;background:#1e1e1e;border:1px solid #444;border-radius:10px;padding:12px 14px;color:#fff;font-size:15px;font-family:inherit;margin-bottom:12px;outline:none;">
+      <button onclick="communitySetNick()" style="width:100%;background:var(--y);color:#1a1a1a;font-weight:900;font-size:15px;padding:13px;border-radius:12px;border:none;cursor:pointer;font-family:inherit">トークに参加する ⚽</button>
+    </div>`;
     return;
   }
 
   const replyBanner = replyingTo ? `
     <div style="display:flex;align-items:center;justify-content:space-between;background:#1e1e1e;border:1px solid color-mix(in srgb,var(--y) 30%,transparent);border-radius:10px;padding:8px 12px;margin-bottom:8px">
-      <span style="color:var(--y);font-size:12px">↩ <b>${escapeHtml(replyingTo.nick)}</b> さんへ返信中</span>
-      <button onclick="window.cancelReply()" style="background:none;border:none;color:#888;font-size:18px;cursor:pointer;line-height:1;">×</button>
+      <span style="color:var(--y);font-size:12px">↩ <b>${_esc(replyingTo.nick)}</b> さんへ返信中</span>
+      <button onclick="communityCancel()" style="background:none;border:none;color:#888;font-size:18px;cursor:pointer;">×</button>
     </div>` : '';
 
   root.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <div>
-        <span style="color:var(--y);font-weight:900;font-size:15px">💬 トーク</span>
-        <span style="color:#555;font-size:11px;margin-left:8px">${communityPosts.length}件の投稿</span>
-      </div>
-      <button onclick="window.changeNickname()" style="background:none;border:1px solid #333;border-radius:8px;padding:4px 10px;color:#888;font-size:11px;cursor:pointer;font-family:inherit">👤 ${escapeHtml(nickname)}</button>
+      <span style="color:var(--y);font-weight:900;font-size:15px">💬 トーク <span style="color:#555;font-size:11px;font-weight:400">${communityPosts.length}件</span></span>
+      <button onclick="communityChangeNick()" style="background:none;border:1px solid #333;border-radius:8px;padding:4px 10px;color:#888;font-size:11px;cursor:pointer;font-family:inherit">👤 ${_esc(nickname)}</button>
     </div>
-
     <div style="background:var(--card);border-radius:14px;padding:13px;margin-bottom:14px;border:1px solid color-mix(in srgb,var(--y) 25%,transparent)">
       ${replyBanner}
-      <textarea id="post-input" placeholder="${replyingTo ? '返信を入力...' : 'レイソルについて語ろう！'}" maxlength="200"
+      <textarea id="post-input" placeholder="${replyingTo?'返信を入力...':'レイソルについて語ろう！'}" maxlength="200"
         style="width:100%;background:#111;border:1px solid #333;border-radius:10px;padding:10px 12px;color:#fff;font-size:14px;font-family:inherit;resize:none;height:70px;outline:none;margin-bottom:10px;"></textarea>
       <div style="display:flex;align-items:center;justify-content:space-between">
         <span id="char-count" style="color:#555;font-size:11px">0 / 200</span>
-        <button id="submit-btn" onclick="window.submitPost()" style="background:var(--y);color:#1a1a1a;font-weight:900;font-size:13px;padding:8px 20px;border-radius:10px;border:none;cursor:pointer;font-family:inherit">
-          ${replyingTo ? '返信する' : '投稿する'}
-        </button>
+        <button id="submit-btn" onclick="communitySubmit()" style="background:var(--y);color:#1a1a1a;font-weight:900;font-size:13px;padding:8px 20px;border-radius:10px;border:none;cursor:pointer;font-family:inherit">${replyingTo?'返信する':'投稿する'}</button>
       </div>
     </div>
-
     ${communityPosts.length === 0
-      ? `<div style="text-align:center;padding:32px;color:#444;font-size:13px">まだ投稿がありません。<br>最初の投稿をしてみよう！</div>`
-      : communityPosts.map(p => renderPostCard(p)).join('')}`;
+      ? '<div style="text-align:center;padding:32px;color:#444;font-size:13px">まだ投稿がありません。最初の投稿をしてみよう！</div>'
+      : communityPosts.map(renderPostCard).join('')}`;
 
   const ta = document.getElementById('post-input');
   const cc = document.getElementById('char-count');
-  if (ta && cc) ta.oninput = () => { cc.textContent = `${ta.value.length} / 200`; };
+  if (ta && cc) ta.oninput = () => { cc.textContent = ta.value.length + ' / 200'; };
 }
 
+// ── COMMUNITY TAB ENTRY ───────────────────────────────────────────────────────
+window.showCommunityTab = function() {
+  subscribePosts();
+  const content = document.getElementById('content');
+  content.className = 'content';
+  content.innerHTML = '<div id="community-root"></div>';
+  renderCommunityDOM();
+};
+
 // ── ACTIONS ───────────────────────────────────────────────────────────────────
-window.submitPost = async function() {
-  if (!currentUser) return alert('認証中です。しばらくお待ちください。');
-  const ta = document.getElementById('post-input');
-  const text = ta?.value?.trim();
-  if (!text) return;
-  if (text.length > 200) return;
+function communitySetNick() {
+  const v = (document.getElementById('nick-input')||{}).value||'';
+  const val = v.trim();
+  if (!val) return;
+  nickname = val;
+  localStorage.setItem('reysol_nickname', nickname);
+  renderCommunityDOM();
+}
+function communityChangeNick() {
+  if (!confirm('ニックネームを変更しますか？\n現在: ' + nickname)) return;
+  nickname = '';
+  localStorage.removeItem('reysol_nickname');
+  renderCommunityDOM();
+}
+function communityStartReply(postId, nick) {
+  replyingTo = { id: postId, nick };
+  openReplies[postId] = true;
+  renderCommunityDOM();
+  setTimeout(() => { const t = document.getElementById('post-input'); if(t) t.focus(); }, 80);
+}
+function communityCancel() { replyingTo = null; renderCommunityDOM(); }
+function communityToggleReplies(postId) { openReplies[postId] = !openReplies[postId]; renderCommunityDOM(); }
+async function communitySubmit() {
+  if (!currentUser) { alert('認証中です。少し待ってから再試行してください。'); return; }
+  const ta  = document.getElementById('post-input');
   const btn = document.getElementById('submit-btn');
+  const text = (ta && ta.value.trim()) || '';
+  if (!text || text.length > 200) return;
   if (btn) { btn.disabled = true; btn.textContent = '送信中...'; }
   try {
     if (replyingTo) {
-      await push(ref(db, `posts/${replyingTo.id}/replies`), {
-        text, nick: nickname, uid: currentUser.uid, ts: serverTimestamp(),
-      });
+      await db.ref('posts/' + replyingTo.id + '/replies').push({ text, nick: nickname, uid: currentUser.uid, ts: firebase.database.ServerValue.TIMESTAMP });
       openReplies[replyingTo.id] = true;
       replyingTo = null;
     } else {
-      await push(ref(db, 'posts'), {
-        text, nick: nickname, uid: currentUser.uid,
-        ts: serverTimestamp(), likes: 0, likedBy: {}
-      });
+      await db.ref('posts').push({ text, nick: nickname, uid: currentUser.uid, ts: firebase.database.ServerValue.TIMESTAMP, likes: 0, likedBy: {} });
     }
     if (ta) ta.value = '';
     const cc = document.getElementById('char-count');
@@ -766,106 +748,27 @@ window.submitPost = async function() {
     alert('投稿に失敗しました。');
     if (btn) { btn.disabled = false; btn.textContent = replyingTo ? '返信する' : '投稿する'; }
   }
-};
-
-window.saveNickname = function() {
-  const val = document.getElementById('nick-input')?.value?.trim();
-  if (!val) return;
-  nickname = val;
-  localStorage.setItem('reysol_nickname', nickname);
-  renderCommunityDOM();
-}; = function() {
-  const val = document.getElementById('nick-input')?.value?.trim();
-  if (!val) return;
-  nickname = val;
-  localStorage.setItem('reysol_nickname', nickname);
-  renderCommunityDOM();
-};
-
-window.changeNickname = function() {
-  if (confirm(`ニックネームを変更しますか？\n現在: ${nickname}`)) {
-    nickname = '';
-    localStorage.removeItem('reysol_nickname');
-    renderCommunityDOM();
-  }
-};
-
-window.startReply = function(postId, nick) {
-  replyingTo = { id: postId, nick };
-  openReplies[postId] = true;
-  renderCommunityDOM();
-  setTimeout(() => document.getElementById('post-input')?.focus(), 80);
-};
-
-window.cancelReply = function() {
-  replyingTo = null;
-  renderCommunityDOM();
-};
-
-window.toggleReplies = function(postId) {
-  openReplies[postId] = !openReplies[postId];
-  renderCommunityDOM();
-};
-
-window.submitPost = async function() {
-  if (!currentUser) return alert('認証中です。しばらくお待ちください。');
-  const ta = document.getElementById('post-input');
-  const text = ta?.value?.trim() || '';
-  const photoInput = document.getElementById('photo-input');
-  const file = photoInput?.files?.[0];
-  if (!text && !file) return;
-  if (text.length > 200) return;
-
-  // ボタンを無効化
-  const btn = document.getElementById('submit-btn');
-  if (btn) { btn.disabled = true; btn.textContent = '送信中...'; }
-
-  try {
-    let imageUrl = null;
-    if (file) {
-      const ext = file.name.split('.').pop();
-      const path = `posts/${currentUser.uid}_${Date.now()}.${ext}`;
-      const snap = await uploadBytes(sRef(storage, path), file);
-      imageUrl = await getDownloadURL(snap.ref);
-    }
-
-    if (replyingTo) {
-      await push(ref(db, `posts/${replyingTo.id}/replies`), {
-        text, nick: nickname, uid: currentUser.uid,
-        ts: serverTimestamp(),
-        ...(imageUrl ? { imageUrl } : {})
-      });
-      openReplies[replyingTo.id] = true;
-      replyingTo = null;
-    } else {
-      await push(ref(db, 'posts'), {
-        text, nick: nickname, uid: currentUser.uid,
-        ts: serverTimestamp(),
-        likes: 0, likedBy: {},
-        ...(imageUrl ? { imageUrl } : {})
-      });
-    }
-    if (ta) ta.value = '';
-    const cc = document.getElementById('char-count');
-    if (cc) cc.textContent = '0 / 200';
-    window.clearPhoto?.();
-  } catch(e) {
-    console.error(e);
-    alert('投稿に失敗しました。Storageが有効か確認してください。');
-    if (btn) { btn.disabled = false; btn.textContent = replyingTo ? '返信する' : '投稿する'; }
-  }
-};
-
-window.likePost = async function(postId) {
+}
+async function communityLike(postId) {
   if (!currentUser) return;
   const post = communityPosts.find(p => p.id === postId);
   if (!post) return;
-  const alreadyLiked = (post.likedBy||{})[currentUser.uid];
-  await update(ref(db, `posts/${postId}`), {
-    likes: increment(alreadyLiked ? -1 : 1),
-    [`likedBy/${currentUser.uid}`]: alreadyLiked ? null : true
-  });
-};
+  const already = (post.likedBy||{})[currentUser.uid];
+  const upd = {};
+  upd['likes'] = firebase.database.ServerValue.increment(already ? -1 : 1);
+  upd['likedBy/' + currentUser.uid] = already ? null : true;
+  await db.ref('posts/' + postId).update(upd);
+}
+
+// グローバルに公開
+window.communitySetNick      = communitySetNick;
+window.communityChangeNick   = communityChangeNick;
+window.communityStartReply   = communityStartReply;
+window.communityCancel       = communityCancel;
+window.communityToggleReplies= communityToggleReplies;
+window.communitySubmit       = communitySubmit;
+window.communityLike         = communityLike;
 </script>
+
 </body>
 </html>
