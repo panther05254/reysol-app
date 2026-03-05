@@ -457,9 +457,15 @@ function render() {
     content.className = 'content webview-mode';
     content.innerHTML = renderBoard();
   } else if (activeTab === 'community') {
-    content.className = 'content';
-    content.innerHTML = '<div id="community-root"></div>';
-    if (window.showCommunityTab) window.showCommunityTab();
+    if (window.showCommunityTab) {
+      window.showCommunityTab();
+    } else {
+      // Firebaseスクリプト読み込み前の場合は待機
+      content.className = 'content';
+      content.innerHTML = '<div id="community-root" style="text-align:center;padding:40px;color:#555">⏳ 読み込み中...</div>';
+      const t = setInterval(() => { if (window.showCommunityTab) { clearInterval(t); window.showCommunityTab(); } }, 200);
+      setTimeout(() => clearInterval(t), 10000);
+    }
   } else {
     content.className = 'content';
     if (activeTab === 'news') content.innerHTML = renderNews();
@@ -696,10 +702,12 @@ function renderCommunityDOM() {
 
 // ── COMMUNITY TAB ENTRY ───────────────────────────────────────────────────────
 window.showCommunityTab = function() {
-  subscribePosts();
   const content = document.getElementById('content');
-  content.className = 'content';
-  content.innerHTML = '<div id="community-root"></div>';
+  if (content) {
+    content.className = 'content';
+    content.innerHTML = '<div id="community-root"></div>';
+  }
+  subscribePosts();
   renderCommunityDOM();
 };
 
