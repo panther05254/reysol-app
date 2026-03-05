@@ -298,6 +298,7 @@ const tabs = [
   { key:'news', icon:'📰', label:'ニュース' },
   { key:'matches', icon:'⚽', label:'試合情報' },
   { key:'community', icon:'💬', label:'トーク' },
+  { key:'chant', icon:'🎵', label:'チャント' },
   { key:'board', icon:'📋', label:'掲示板' },
   { key:'standings', icon:'📊', label:'順位表' },
 ];
@@ -305,7 +306,7 @@ const navItems = [
   { key:'news', icon:'📰', label:'ニュース' },
   { key:'matches', icon:'⚽', label:'試合' },
   { key:'community', icon:'💬', label:'トーク' },
-  { key:'board', icon:'📋', label:'掲示板' },
+  { key:'chant', icon:'🎵', label:'チャント' },
   { key:'standings', icon:'📊', label:'順位' },
 ];
 
@@ -420,6 +421,119 @@ function renderBoard() {
     </div>`;
 }
 
+// ── CHANT DATA ────────────────────────────────────────────────────────────────
+const chantData = {
+  team: [
+    { title: 'ミノル節', url: 'https://www.reysol-chant.com/ミノル節.html' },
+    { title: 'トゥルーバーチャ', url: 'https://www.reysol-chant.com/トゥルーバーチャ.html' },
+    { title: 'てのひらさぁ', url: 'https://www.reysol-chant.com/entry61.html' },
+    { title: 'Boys Only', url: 'https://www.reysol-chant.com/Boys_Only.html' },
+    { title: 'レッドリバー', url: 'https://www.reysol-chant.com/レッドリバー.html' },
+    { title: 'to me, to you', url: 'https://www.reysol-chant.com/柏レイソル_チャント_to_me,_to_you.html' },
+    { title: "Driver's High", url: "https://www.reysol-chant.com/柏レイソル_チャント_Driver's_High_.html" },
+    { title: 'ホワイトノイズ', url: 'https://www.reysol-chant.com/柏レイソル_チャント_ホワイトノイズ.html' },
+    { title: '男の夢叶えて前進めよ', url: 'https://www.reysol-chant.com/柏レイソル_チャント_男の夢叶えて前進めよ.html' },
+    { title: 'ゴール オラオラゴール (マトラ)', url: 'https://www.reysol-chant.com/柏レイソル_チャント_マトラ.html' },
+    { title: 'オッオーオア (柏ゴールチャント)', url: 'https://www.reysol-chant.com/柏レイソル_チャント_柏レイソル_チャント.html' },
+    { title: 'チュニジア', url: 'https://www.reysol-chant.com/柏レイソル_チャント_チュニジア.html' },
+    { title: 'Over the Sun', url: 'https://www.reysol-chant.com/柏レイソル_チャント_Over_the_Sun.html' },
+    { title: 'RAISE A FLAG', url: 'https://www.reysol-chant.com/柏レイソル_チャント_RAISE_A_FLAG.html' },
+    { title: 'ねぇ過ぎた時', url: 'https://www.reysol-chant.com/柏レイソル_チャント_ねぇ過ぎた時.html' },
+    { title: '夢から世界へ「木枯らしの中から始まる」', url: 'https://www.reysol-chant.com/柏レイソル_チャント_夢から世界へ.html' },
+    { title: '勝利を掴め！「それなのに」', url: 'https://www.reysol-chant.com/柏勝利を掴め！柏レイソル_チャント_それなのに.html' },
+    { title: 'アリオーア (ジョージ・イタリアーノ)', url: 'https://www.reysol-chant.com/アリオーア_バラ_バラ_柏レイソル_チャント_ジョージイタリアーノ.html' },
+    { title: 'イングランド', url: 'https://www.reysol-chant.com/イングランド.html' },
+    { title: 'Lorenzo(ロレンツォ)', url: 'https://www.reysol-chant.com/柏レイソル_チャント_Lorenzo(ロレンツォ).html' },
+    { title: 'アルゴル', url: 'https://www.reysol-chant.com/柏レイソル_チャントアルゴル.html' },
+    { title: '捧げてよ「魂は」', url: 'https://www.reysol-chant.com/柏レイソル_チャント_捧げてよ全てを_魂は.html' },
+    { title: 'ルールールーラ (カナリアソング)', url: 'https://www.reysol-chant.com/柏レイソル_チャント_カナリアソング.html' },
+    { title: 'レイソル ラッシュレイシレイ (浦和マリボ)', url: 'https://www.reysol-chant.com/柏レイソル_チャント_浦和マリボ.html' },
+    { title: 'サンバデジャネイロ', url: 'https://www.reysol-chant.com/サンバデジャネイロ.html' },
+    { title: '勝利を掴め！オレ！「勝利を掴め！オレ！」', url: 'https://www.reysol-chant.com/勝利を掴め！オレ.html' },
+    { title: 'AIDA アイーダ', url: 'https://www.reysol-chant.com/オーレー_バラ_バラ_AIDA_アイーダ.html' },
+    { title: '2024新曲 チームチャント「パレード」', url: 'https://www.reysol-chant.com/2024新曲_チームチャント.html' },
+  ],
+  player: [
+    { title: '細谷 真大', url: 'https://www.reysol-chant.com/細谷_真大.html' },
+    { title: '木下 康介', url: 'https://www.reysol-chant.com/木下_康介.html' },
+    { title: '木下 翼人', url: 'https://www.reysol-chant.com/木下_翼人.html' },
+    { title: '立田 悠悟', url: 'https://www.reysol-chant.com/立田_悠悟.html' },
+    { title: '山田 雄士', url: 'https://www.reysol-chant.com/山田_雄士.html' },
+    { title: '辻 周吾', url: 'https://www.reysol-chant.com/辻_周吾.html' },
+    { title: '関根 貴大', url: 'https://www.reysol-chant.com/関根_貴大.html' },
+    { title: '宮市 亮', url: 'https://www.reysol-chant.com/宮市_亮.html' },
+    { title: '垣田 裕暉', url: 'https://www.reysol-chant.com/垣田_裕暉.html' },
+    { title: '犬飼 智也', url: 'https://www.reysol-chant.com/犬飼_智也.html' },
+    { title: '蔦田 大介', url: 'https://www.reysol-chant.com/蔦田_大介.html' },
+    { title: '高嶺 朋樹', url: 'https://www.reysol-chant.com/高嶺_朋樹.html' },
+    { title: '古谷 優斗', url: 'https://www.reysol-chant.com/古谷_優斗_チャント.html' },
+    { title: '小見 洋太', url: 'https://www.reysol-chant.com/小見_洋太_チャント.html' },
+    { title: '熊谷 男爵', url: 'https://www.reysol-chant.com/熊谷_男爵.html' },
+    { title: '岩崎 悠人', url: 'https://www.reysol-chant.com/岩崎_悠人_チャント.html' },
+    { title: '岡本 将也', url: 'https://www.reysol-chant.com/岡本将也.html' },
+    { title: '三丸 拓', url: 'https://www.reysol-chant.com/三丸_拓.html' },
+    { title: '瀬川 祐輔', url: 'https://www.reysol-chant.com/瀬川_祐輔.html' },
+    { title: '選手紹介BGM', url: 'https://www.reysol-chant.com/柏レイソル_選手紹介BGM.html' },
+  ],
+  past: [
+    { title: 'マテウス サヴィオ', url: 'https://www.reysol-chant.com/マテウス_サヴィオ.html' },
+    { title: '高嶺 朋樹', url: 'https://www.reysol-chant.com/高嶺_朋樹_チャント.html' },
+    { title: '山田 椎汰', url: 'https://www.reysol-chant.com/山田_椎汰_チャント.html' },
+    { title: 'ジエゴ', url: 'https://www.reysol-chant.com/ジエゴ_チャント.html' },
+    { title: '椎名 伸志', url: 'https://www.reysol-chant.com/椎名_伸志_チャント.html' },
+    { title: '加藤 匠人', url: 'https://www.reysol-chant.com/加藤_匠人.html' },
+    { title: '川口 尚紀', url: 'https://www.reysol-chant.com/川口_尚紀.html' },
+    { title: '飯田 旺介', url: 'https://www.reysol-chant.com/飯田_旺介_チャント.html' },
+    { title: '三原 克也', url: 'https://www.reysol-chant.com/三原克也.html' },
+    { title: '鵜木 蓮', url: 'https://www.reysol-chant.com/鵜木_蓮_チャント.html' },
+    { title: '津田 歩夢', url: 'https://www.reysol-chant.com/津田_歩夢_チャント.html' },
+  ],
+};
+
+let chantFilter = 'team';
+
+function renderChant() {
+  const sections = [
+    { key:'team',   label:'チームチャント',  icon:'🏆' },
+    { key:'player', label:'選手チャント',    icon:'👤' },
+    { key:'past',   label:'過去の在籍選手',  icon:'📜' },
+  ];
+  const items = chantData[chantFilter] || [];
+  return `
+    <div style="margin-bottom:14px">
+      <div style="color:var(--y);font-weight:900;font-size:15px;margin-bottom:10px">🎵 チャント</div>
+      <div style="display:flex;gap:6px;margin-bottom:16px">
+        ${sections.map(s => `
+          <button onclick="setChantFilter('${s.key}')"
+            style="flex:1;padding:8px 4px;border-radius:10px;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;
+              background:${chantFilter===s.key?'var(--y)':'#1e1e1e'};
+              color:${chantFilter===s.key?'#1a1a1a':'#888'}">
+            ${s.icon}<br>${s.label}
+          </button>`).join('')}
+      </div>
+      <div style="color:#555;font-size:11px;margin-bottom:12px">${items.length}件 · タップで歌詞・動画を確認</div>
+    </div>
+    ${items.map((c, i) => `
+      <a href="${c.url}" target="_blank" style="display:flex;align-items:center;gap:12px;background:var(--card);border-radius:12px;padding:13px 14px;margin-bottom:8px;text-decoration:none;border:1px solid var(--border);" class="fade-in" style="animation-delay:${i*0.03}s">
+        <div style="width:36px;height:36px;background:#1e1e1e;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🎵</div>
+        <div style="flex:1">
+          <div style="color:#ddd;font-size:14px;font-weight:700">${c.title}</div>
+          <div style="color:#555;font-size:11px;margin-top:2px">reysol-chant.com →</div>
+        </div>
+        <div style="color:#444;font-size:18px">›</div>
+      </a>`).join('')}
+    <div style="text-align:center;margin-top:16px;padding-bottom:8px">
+      <a href="https://www.reysol-chant.com/" target="_blank" style="color:#555;font-size:11px;text-decoration:none;border:1px solid #333;border-radius:8px;padding:6px 14px;">
+        全チャントをサイトで見る →
+      </a>
+    </div>`;
+}
+
+function setChantFilter(f) {
+  chantFilter = f;
+  render();
+}
+
 function renderStandings() {
   return `
     <div class="section-label">明治安田J1百年構想リーグ EAST 2026 第4節終了時</div>
@@ -470,6 +584,7 @@ function render() {
     content.className = 'content';
     if (activeTab === 'news') content.innerHTML = renderNews();
     else if (activeTab === 'matches') content.innerHTML = renderMatches();
+    else if (activeTab === 'chant') content.innerHTML = renderChant();
     else if (activeTab === 'standings') content.innerHTML = renderStandings();
   }
 }
