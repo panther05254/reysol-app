@@ -338,7 +338,7 @@ function renderNews() {
   return `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div style="color:#555;font-size:11px">
-        ${rssError ? '⚠️ オフライン — キャッシュ表示中' : `✅ ${displayNews.length}件取得 · リアルタイム`}
+        ${rssError ? 'キャッシュ表示中' : `✅ ${displayNews.length}件取得 · リアルタイム`}
       </div>
       <button onclick="fetchRSS()" style="background:none;border:1px solid #333;border-radius:8px;padding:4px 10px;color:#888;font-size:11px;cursor:pointer;font-family:inherit">🔄 更新</button>
     </div>
