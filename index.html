@@ -169,8 +169,8 @@ const matches = [
 ];
 
 const news = [
-  { id:1, category:'試合結果', color:'#4caf50', source:'FOOTBALL ZONE', date:'2026/03/01', title:"先発復帰で即結果「相手の前で勝負」指揮官も称賛「偉大な選手」…柏の『汗かき役』が見せた姿勢", summary:'FC東京戦で先発復帰した瀬川祐輔が追加点を決め初勝利に貢献。リカルド ロドリゲス監督も試合後に高く評価するコメントを残した。', url:'https://footballzone.net/', hot:true },
-  { id:2, category:'試合結果', color:'#4caf50', source:'ゲキサカ', date:'2026/03/01', title:'「わかりやすく大きな修正ポイント」3連敗で見えた課題をポジティブにとらえる柏MF小泉佳穂', summary:'柏レイソルMF小泉佳穂がFC東京戦後に語ったコメント。3連敗から脱出し、チームの課題と向き合いながらも前向きな姿勢を示した。', url:'https://gekisaka.jp/soccer/detail/?173600-173600-cm', hot:true },
+  { id:1, category:'試合結果', color:'#4caf50', source:'サッカーマガジンWEB', date:'2026/03/01', title:"亡き祖父へ捧げたゴール…先発落ちから奮起の柏MF瀬川祐輔が涙の追加点", summary:'FC東京戦で途中出場した瀬川祐輔が追加点を決め初勝利に貢献。今週亡くなった祖父への誓いを果たし、ゴール後は涙をおさえられなかった。', url:'https://soccermagazine.jp/j1/17824558', hot:true },
+  { id:2, category:'試合結果', color:'#4caf50', source:'ゲキサカ', date:'2026/03/01', title:'亡き祖父へ、ゴールを捧げた。柏FW瀬川祐輔が涙の追加点「ゴールを決めると約束して」', summary:'柏レイソルMF瀬川祐輔がFC東京戦後に語ったコメント。3連敗から脱出し、亡き祖父へ誓いのゴールを届けた。', url:'https://web.gekisaka.jp/news/jleague/detail/?447089-447089-fl=', hot:true },
   { id:3, category:'マッチコラム', color:'#e91e63', source:'柏フットボールジャーナル', date:'2026/02/23', title:'決定力不足と脆弱なセットプレー。選手のコンディション不良も相まって苦しい戦いが続く／J1 第3節 鹿島 vs 柏【マッチコラム】', summary:'第3節鹿島戦（2-0敗戦）を詳細レビュー。決定機を複数回逃した前半の決定力不足と、セットプレーから失点した守備の課題を分析。', url:'https://www1.targma.jp/kashiwa/2026/02/23/post31056/', hot:false },
   { id:4, category:'マッチコラム', color:'#e91e63', source:'柏フットボールジャーナル', date:'2026/02/20', title:'相手を自陣に押し下げよ。数字が示す柏の破壊力と、それを無力化する鹿島のしたたかなビルドアップ／【プレビュー】', summary:'第3節 鹿島 vs 柏のプレビュー。ゴール期待値の高さが勝利を保証しない現状と、鹿島のビルドアップへの対策を詳細に考察。', url:'https://www1.targma.jp/kashiwa/2026/02/20/post31040/', hot:false },
   { id:5, category:'コラム', color:'#e91e63', source:'柏フットボールジャーナル', date:'2026/01/16', title:'充実のキャンプ序盤を振り返る【2026年指宿キャンプレポート】', summary:'2025年J1 2位の勢いそのままに始動した2026年。古賀太陽が「去年よりも積み上げられる」と語るなど、戦術浸透度への確信が随所に見られたキャンプ序盤を詳報。', url:'https://www1.targma.jp/kashiwa/2026/01/16/post30872/', hot:false },
@@ -310,24 +310,30 @@ function renderMatches() {
 
 function renderBoard() {
   const url = `https://bm.best-hit.tv/reysol/?page=${bbsPage}`;
+  const pages = [1,2,3,4,5];
   return `
-    <div class="webview-container">
-      <div class="webview-header">
-        <div style="flex:1">
-          <div style="color:var(--y);font-weight:700;font-size:13px">超柏レイソル掲示板</div>
-          <div style="color:#555;font-size:10px;margin-top:1px">リアルタイム表示中</div>
-        </div>
-        <button class="action-btn reload-btn" id="bbs-reload-btn" onclick="reloadBBS()" title="更新">🔄</button>
-        <a href="${url}" target="_blank" class="action-btn post-btn">✏ 投稿 ↗</a>
+    <div style="text-align:center;padding:24px 16px 16px">
+      <div style="font-size:40px;margin-bottom:12px">💬</div>
+      <div style="color:var(--y);font-weight:900;font-size:18px;margin-bottom:6px">超柏レイソル掲示板</div>
+      <div style="color:#555;font-size:12px;margin-bottom:24px">PWAではセキュリティ制限のため埋め込み表示ができません。<br>下のボタンからSafariで直接開いてください。</div>
+      <a href="${url}" target="_blank" style="display:block;background:var(--y);color:#1a1a1a;font-weight:900;font-size:15px;padding:14px;border-radius:14px;text-decoration:none;margin-bottom:12px">
+        📋 掲示板を開く（最新の投稿）
+      </a>
+      <a href="https://bm.best-hit.tv/reysol/?mode=post" target="_blank" style="display:block;border:1px solid color-mix(in srgb,var(--y) 40%,transparent);color:var(--y);font-weight:700;font-size:13px;padding:12px;border-radius:14px;text-decoration:none;margin-bottom:24px;background:color-mix(in srgb,var(--y) 8%,transparent)">
+        ✏️ 新規投稿する
+      </a>
+      <div style="color:#444;font-size:11px;margin-bottom:10px">ページを選んで開く</div>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        ${pages.map(p => `
+          <a href="https://bm.best-hit.tv/reysol/?page=${p}" target="_blank"
+            style="border:1px solid color-mix(in srgb,var(--y) ${p===bbsPage?'60':'25'}%,transparent);
+            background:color-mix(in srgb,var(--y) ${p===bbsPage?'18':'6'}%,transparent);
+            color:${p===bbsPage?'var(--y)':'#888'};
+            font-weight:${p===bbsPage?'700':'400'};
+            border-radius:10px;padding:8px 16px;font-size:13px;text-decoration:none">
+            ${p}ページ
+          </a>`).join('')}
       </div>
-      <div class="webview-hint" id="bbs-hint">↓ 下に引っ張って更新</div>
-      <div class="page-nav">
-        <button class="page-btn ${bbsPage===1?'disabled':'active'}" onclick="setBBSPage(${bbsPage-1})" ${bbsPage===1?'disabled':''}>← 前</button>
-        <span class="page-num">ページ ${bbsPage}</span>
-        <button class="page-btn active" onclick="setBBSPage(${bbsPage+1})">次 →</button>
-      </div>
-      <iframe id="bbs-iframe" class="bbs-iframe" src="${url}"
-        onload="onBBSLoad(this)"></iframe>
     </div>`;
 }
 
