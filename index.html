@@ -197,7 +197,72 @@ let activeTab = 'news';
 let newsFilter = 'すべて';
 let expandedMatch = null;
 let bbsPage = 1;
-let bbsRefreshKey = 0;
+let rssNews = [];       // RSSから取得した記事
+let rssLoading = false;
+let rssError = false;
+
+// ── RSS FETCH ─────────────────────────────────────────────────────────────────
+// rss2json: 無料・CORSなし・JSON変換プロキシ
+const RSS_SOURCES = [
+  { url: 'https://www.reysol.co.jp/feed/', source: '柏レイソル公式', category: 'クラブ情報', color: '#ff9800' },
+  { url: 'https://web.gekisaka.jp/feed/jleague/', source: 'ゲキサカ', category: '試合結果', color: '#4caf50' },
+  { url: 'https://www1.targma.jp/kashiwa/feed/', source: '柏フットボールジャーナル', category: 'マッチコラム', color: '#e91e63' },
+];
+
+async function fetchRSS() {
+  rssLoading = true;
+  rssError = false;
+  if (activeTab === 'news') render();
+
+  const keyword = '柏';
+  const allItems = [];
+
+  await Promise.all(RSS_SOURCES.map(async (src) => {
+    try {
+      const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(src.url)}&api_key=public&count=30`;
+      const res = await fetch(apiUrl);
+      const data = await res.json();
+      if (data.status !== 'ok') return;
+      data.items.forEach(item => {
+        // 柏レイソル関連のみフィルタ
+        const text = (item.title + ' ' + (item.description||'')).toLowerCase();
+        const isReysol = src.source === '柏レイソル公式' || src.source === '柏フットボールジャーナル'
+          || text.includes('柏') || text.includes('reysol') || text.includes('レイソル');
+        if (!isReysol) return;
+        const pubDate = new Date(item.pubDate);
+        const dateStr = `${pubDate.getFullYear()}/${String(pubDate.getMonth()+1).padStart(2,'0')}/${String(pubDate.getDate()).padStart(2,'0')}`;
+        // summaryのHTMLタグを除去
+        const summary = (item.description || '').replace(/<[^>]+>/g,'').slice(0, 100);
+        allItems.push({
+          id: item.link,
+          category: src.category,
+          color: src.color,
+          source: src.source,
+          date: dateStr,
+          pubDate: pubDate,
+          title: item.title,
+          summary: summary,
+          url: item.link,
+          hot: false,
+        });
+      });
+    } catch(e) {}
+  }));
+
+  if (allItems.length > 0) {
+    // 日付順にソート
+    allItems.sort((a, b) => b.pubDate - a.pubDate);
+    rssNews = allItems.slice(0, 40);
+    rssError = false;
+  } else {
+    // RSSが取れなかった場合は静的データにフォールバック
+    rssNews = news;
+    rssError = true;
+  }
+
+  rssLoading = false;
+  if (activeTab === 'news') render();
+}
 
 // ── BANNER ────────────────────────────────────────────────────────────────────
 function renderBanner() {
@@ -257,13 +322,29 @@ function renderNav() {
 // ── TABS ──────────────────────────────────────────────────────────────────────
 function renderNews() {
   const categories = ['すべて','試合結果','マッチコラム','コラム','インタビュー','移籍情報','クラブ情報'];
-  const filtered = newsFilter === 'すべて' ? news : news.filter(n => n.category === newsFilter);
+  const displayNews = rssNews.length > 0 ? rssNews : news;
+  const filtered = newsFilter === 'すべて' ? displayNews : displayNews.filter(n => n.category === newsFilter);
+
+  if (rssLoading) return `
+    <div style="text-align:center;padding:40px 16px">
+      <div style="font-size:32px;margin-bottom:12px">📡</div>
+      <div style="color:var(--y);font-weight:700;font-size:14px;margin-bottom:6px">ニュースを取得中...</div>
+      <div style="color:#555;font-size:12px">各サイトのRSSフィードを読み込んでいます</div>
+    </div>`;
+
   return `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="color:#555;font-size:11px">
+        ${rssError ? '⚠️ オフライン — キャッシュ表示中' : `✅ ${displayNews.length}件取得 · リアルタイム`}
+      </div>
+      <button onclick="fetchRSS()" style="background:none;border:1px solid #333;border-radius:8px;padding:4px 10px;color:#888;font-size:11px;cursor:pointer;font-family:inherit">🔄 更新</button>
+    </div>
     <div class="cat-chips">
       ${categories.map(c => `<button class="chip ${newsFilter===c?'active':''}" onclick="setNewsFilter('${c}')">${c}</button>`).join('')}
     </div>
+    ${filtered.length === 0 ? `<div style="text-align:center;padding:32px;color:#555">該当する記事がありません</div>` : ''}
     ${filtered.map((a,i) => `
-      <a href="${a.url}" target="_blank" class="card ${a.hot?'hot':''} fade-in" style="animation-delay:${i*0.04}s;display:block;text-decoration:none">
+      <a href="${a.url}" target="_blank" class="card ${a.hot?'hot':''} fade-in" style="animation-delay:${i*0.03}s;display:block;text-decoration:none">
         ${a.hot ? '<div style="display:flex;justify-content:flex-end;margin-bottom:4px"><span class="hot-badge">🔥 HOT</span></div>' : ''}
         <div class="news-meta">
           <span class="cat-tag" style="color:${a.color};background:${a.color}22;border-color:${a.color}55">${a.category}</span>
@@ -441,6 +522,7 @@ function onBBSLoad(iframe) {
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 render();
+fetchRSS(); // 起動時に自動でRSS取得
 
 // Service Worker
 if ('serviceWorker' in navigator) {
