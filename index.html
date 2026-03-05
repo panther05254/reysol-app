@@ -458,8 +458,20 @@ function render() {
     content.innerHTML = renderBoard();
   } else if (activeTab === 'community') {
     content.className = 'content';
-    content.innerHTML = '<div id="community-root"><div style="text-align:center;padding:40px;color:#555">読み込み中...</div></div>';
-    setTimeout(() => { if (window.renderCommunityDOM) window.renderCommunityDOM(); else if (window.renderCommunity) { window.renderCommunity(); setTimeout(() => window.renderCommunityDOM?.(), 100); } }, 80);
+    if (window.renderCommunity) {
+      content.innerHTML = window.renderCommunity();
+    } else {
+      content.innerHTML = '<div id="community-root"></div>';
+      // モジュール読み込み待ち（最大3秒）
+      let tries = 0;
+      const wait = setInterval(() => {
+        tries++;
+        if (window.renderCommunity) {
+          clearInterval(wait);
+          document.getElementById('community-root') && (document.getElementById('content').innerHTML = window.renderCommunity());
+        } else if (tries > 30) clearInterval(wait);
+      }, 100);
+    }
   } else {
     content.className = 'content';
     if (activeTab === 'news') content.innerHTML = renderNews();
@@ -474,7 +486,6 @@ function setTab(key) {
   window.activeTab = key;
   render();
   document.getElementById('content').scrollTop = 0;
-  if (key === 'community') setTimeout(() => { if (window.renderCommunityDOM) window.renderCommunityDOM(); }, 50);
 }
 
 function setNewsFilter(cat) {
@@ -580,7 +591,7 @@ let unsubPosts = null;
 signInAnonymously(auth);
 onAuthStateChanged(auth, user => {
   currentUser = user;
-  if (user && window.activeTab === 'community') renderCommunityDOM();
+  renderCommunityDOM();
 });
 
 // ── POSTS LISTENER ────────────────────────────────────────────────────────────
@@ -592,7 +603,7 @@ function subscribePosts() {
     snap.forEach(child => {
       communityPosts.unshift({ id: child.key, ...child.val() });
     });
-    if (window.activeTab === 'community') renderCommunityDOM();
+    renderCommunityDOM();
   });
 }
 
@@ -617,8 +628,7 @@ let openReplies = {}; // postId -> bool
 // ── RENDER ────────────────────────────────────────────────────────────────────
 window.renderCommunity = function() {
   subscribePosts();
-  setTimeout(() => renderCommunityDOM(), 100);
-  return `<div id="community-root"><div style="text-align:center;padding:40px;color:#555">読み込み中...</div></div>`;
+  return `<div id="community-root"></div>`;
 };
 
 function renderPostCard(p) {
