@@ -207,25 +207,40 @@ const TEAM_JP = {
 };
 function toJP(name) { return TEAM_JP[name] || name; }
 
-function fmtDate(dateStr) {
-  const d = new Date(dateStr);
-  const days = ['日','月','火','水','木','金','土'];
-  return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日(${days[d.getDay()]})`;
+// UTC日時文字列 → JST（UTC+9）に変換してDate取得
+function toJST(dateStr, timeStr) {
+  // dateStr: "2026-03-07", timeStr: "04:00:00" (UTC)
+  if (!timeStr || timeStr === '00:00:00') {
+    // 時刻不明の場合はdateEventをそのまま使う（日付はJSTとして扱う）
+    const d = new Date(dateStr + 'T00:00:00+09:00');
+    return d;
+  }
+  const d = new Date(dateStr + 'T' + timeStr + 'Z'); // UTC
+  return new Date(d.getTime() + 9 * 60 * 60 * 1000); // → JST
 }
-function fmtTime(dateStr) {
-  const d = new Date(dateStr + (dateStr.includes('T') ? '' : 'T00:00:00'));
-  const h = d.getHours(), m = d.getMinutes();
-  if (h === 0 && m === 0) return 'TBD';
+
+function fmtDate(dateStr, timeStr) {
+  const d = toJST(dateStr, timeStr);
+  const days = ['日','月','火','水','木','金','土'];
+  return `${d.getUTCFullYear()}年${d.getUTCMonth()+1}月${d.getUTCDate()}日(${days[d.getUTCDay()]})`;
+}
+
+function fmtTime(dateStr, timeStr) {
+  if (!timeStr || timeStr === '00:00:00') return 'TBD';
+  const d = toJST(dateStr, timeStr);
+  const h = d.getUTCHours(), m = d.getUTCMinutes();
   return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
 }
 
 function tsdbEventToMatch(e) {
-  const finished = e.strStatus === 'Match Finished' || (e.intHomeScore !== null && e.intAwayScore !== null && e.strStatus !== 'Not Started');
-  const dateStr = e.dateEvent + (e.strTime ? 'T' + e.strTime : '');
+  const finished = e.strStatus === 'Match Finished' ||
+    (e.intHomeScore !== null && e.intHomeScore !== '' &&
+     e.intAwayScore !== null && e.intAwayScore !== '' &&
+     e.strStatus !== 'Not Started');
   return {
     id: e.idEvent,
-    date: fmtDate(e.dateEvent),
-    time: e.strTime ? e.strTime.slice(0,5) : 'TBD',
+    date: fmtDate(e.dateEvent, e.strTime),
+    time: fmtTime(e.dateEvent, e.strTime),
     home: toJP(e.strHomeTeam),
     away: toJP(e.strAwayTeam),
     homeScore: finished ? parseInt(e.intHomeScore) : null,
@@ -282,20 +297,21 @@ async function fetchStandings() {
   try {
     const res = await fetch(`${TSDB}/lookuptable.php?l=${J1_ID}&s=2026`);
     const data = await res.json();
-    console.log('[Reysol] standings:', data);
+    console.log('[Reysol] standings raw:', JSON.stringify((data.table||[])[0]));
     const table = data.table;
     if (!table || table.length === 0) throw new Error('no standings');
-    standings = table.map(t => ({
-      pos: parseInt(t.intRank),
-      team: toJP(t.strTeam),
-      played: parseInt(t.intPlayed),
-      won: parseInt(t.intWin),
-      draw: parseInt(t.intDraw),
-      lost: parseInt(t.intLoss),
-      gf: parseInt(t.intGoalsFor),
-      ga: parseInt(t.intGoalsAgainst),
-      pts: parseInt(t.intPoints),
-    })).sort((a, b) => a.pos - b.pos);
+    standings = table.map(t => {
+      // TheSportsDBのフィールド名を両方試す
+      const pos   = parseInt(t.intRank || t.intPosition || 0);
+      const won   = parseInt(t.intWin  || t.intW || t.intWon || 0);
+      const draw  = parseInt(t.intDraw || t.intD || 0);
+      const lost  = parseInt(t.intLoss || t.intL || t.intLost || 0);
+      const gf    = parseInt(t.intGoalsFor     || t.intGF || 0);
+      const ga    = parseInt(t.intGoalsAgainst || t.intGA || 0);
+      const pts   = parseInt(t.intPoints || t.intPts || 0);
+      const played= parseInt(t.intPlayed || (won + draw + lost) || 0);
+      return { pos, team: toJP(t.strTeam), played, won, draw, lost, gf, ga, pts };
+    }).sort((a, b) => a.pos - b.pos);
   } catch(e) {
     console.error('[Reysol] fetchStandings error:', e);
     standingsError = true;
