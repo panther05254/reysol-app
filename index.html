@@ -338,7 +338,7 @@ function renderNews() {
   return `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div style="color:#555;font-size:11px">
-        ${rssError ? 'キャッシュ表示中' : `✅ ${displayNews.length}件取得 · リアルタイム`}
+        ${rssError ? '⚠️ オフライン — キャッシュ表示中' : `✅ ${displayNews.length}件取得 · リアルタイム`}
       </div>
       <button onclick="fetchRSS()" style="background:none;border:1px solid #333;border-radius:8px;padding:4px 10px;color:#888;font-size:11px;cursor:pointer;font-family:inherit">🔄 更新</button>
     </div>
@@ -424,18 +424,17 @@ function renderBoard() {
 // ── CHANT DATA ────────────────────────────────────────────────────────────────
 const chantData = {
   team: [
-    { title: 'ホワイトノイズ', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_%E3%80%8E%E3%83%9B%E3%83%AF%E3%82%A4%E3%83%88%E3%83%8E%E3%82%A4%E3%82%BA%E3%80%8F.html' },
-    { title: 'トリーバーチ', url: 'https://www.reysol-chant.com/%E3%83%88%E3%83%AA%E3%83%BC%E3%83%90%E3%83%BC%E3%83%81.html' },
-    { title: '俺よ届け', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_%E6%9F%8F%E3%81%99%E3%81%B9%E3%81%A6%E3%82%92%E3%81%8B%E3%81%91%E3%81%A6_%E3%80%8E%E4%BF%BA%E3%82%88%E5%B1%8A%E3%81%91%E3%80%8F.html' },
-    { title: 'レッツゴー柏', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88.html' },
     { title: 'ミノル', url: 'https://www.reysol-chant.com/%E3%83%9F%E3%83%8E%E3%83%AB.html' },
+    { title: '2025年 新応援歌 トリーバーチ', url: 'https://www.reysol-chant.com/%E3%83%88%E3%83%AA%E3%83%BC%E3%83%90%E3%83%BC%E3%83%81.html' },
     { title: '夏のお嬢さん', url: 'https://www.reysol-chant.com/entry61.html' },
     { title: 'Boys Only', url: 'https://www.reysol-chant.com/Boys_Only.html' },
     { title: 'レッドリバー', url: 'https://www.reysol-chant.com/%E3%83%AC%E3%83%83%E3%83%89%E3%83%AA%E3%83%90%E3%83%BC.html' },
     { title: 'to me, to you', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_to_me,_to_you.html' },
     { title: "Driver's High", url: "https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_Driver%27s_High_.html" },
+    { title: 'ホワイトノイズ', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_%E3%80%8E%E3%83%9B%E3%83%AF%E3%82%A4%E3%83%88%E3%83%8E%E3%82%A4%E3%82%BA%E3%80%8F.html' },
     { title: '柏の男は夢をみた', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_%E6%9F%8F%E3%81%AE%E7%94%B7%E3%81%AF%E5%A4%A2%E3%82%92%E8%A6%8B%E3%81%9F.html' },
     { title: 'ヤマト', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_%E3%80%8E%E3%83%A4%E3%83%9E%E3%83%88%E3%80%8F.html' },
+    { title: 'レッツゴー柏', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88.html' },
     { title: 'チュニジア', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_%E3%83%81%E3%83%A5%E3%83%8B%E3%82%B8.html' },
     { title: 'Over the Sun', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_%E3%80%8EOver_the_Sun%E3%80%8F.html' },
     { title: 'RAISE A FLAG', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_%E6%9F%8F%E3%80%81%E3%81%95%E3%81%81%E8%A1%8C%E3%81%93%E3%81%86%E3%81%9C%E3%80%8ERAISE_A_FLAG%E3%80%8F.html' },
@@ -446,12 +445,13 @@ const chantData = {
     { title: 'イングランド', url: 'https://www.reysol-chant.com/%E3%82%A4%E3%83%B3%E3%82%B0%E3%83%A9%E3%83%B3%E3%83%89.html' },
     { title: 'Lorenzo(ロレンソ)', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_%E3%80%8ELorenzo(%E3%83%AD%E3%83%AC%E3%83%B3%E3%82%BD)%E3%80%8F.html' },
     { title: 'アンゴラ', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88%E3%80%8E%E3%82%A2%E3%83%B3%E3%82%B4%E3%83%A9%E3%80%8F.html' },
+    { title: '俺よ届け', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_%E6%9F%8F%E3%81%99%E3%81%B9%E3%81%A6%E3%82%92%E3%81%8B%E3%81%91%E3%81%A6_%E3%80%8E%E4%BF%BA%E3%82%88%E5%B1%8A%E3%81%91%E3%80%8F.html' },
     { title: 'カナリヤ鳴く空', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_%E3%82%AB%E3%83%8A%E3%83%AA%E3%83%A4%E9%B3%B4%E3%81%8F%E7%A9%BA.html' },
     { title: 'お祭りマンボ', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88%E3%80%8E%E3%81%8A%E7%A5%AD%E3%82%8A%E3%83%9E%E3%83%B3%E3%83%9C%E3%80%8F.html' },
     { title: 'サンバデジャネイロ', url: 'https://www.reysol-chant.com/%E3%82%B5%E3%83%B3%E3%83%90%E3%83%87%E3%82%B8%E3%83%A3%E3%83%8D%E3%82%A4%E3%83%AD.html' },
     { title: 'いざ行け！柏', url: 'https://www.reysol-chant.com/%E3%81%84%E3%81%96%E8%A1%8C%E3%81%91%EF%BC%81%E6%9F%8F.html' },
     { title: 'AIDA アイーダ', url: 'https://www.reysol-chant.com/%E3%82%AA%E3%83%BC%E3%83%AC%E3%83%BC_%E3%83%90%E3%83%A2%E6%9F%8F%E3%80%8EAIDA_%E3%82%A2%E3%82%A4%E3%83%BC%E3%83%80%E3%80%8F.html' },
-    { title: 'パレード', url: 'https://www.reysol-chant.com/2024%E6%96%B0%E6%9B%B2_%E3%83%81%E3%83%BC%E3%83%A0%E5%BF%9C%E6%8F%B4%E6%AD%8C.html' },
+    { title: '2024新曲 チーム応援歌 パレード', url: 'https://www.reysol-chant.com/2024%E6%96%B0%E6%9B%B2_%E3%83%81%E3%83%BC%E3%83%A0%E5%BF%9C%E6%8F%B4%E6%AD%8C.html' },
   ],
   player: [
     { title: '小島 亨介', url: 'https://www.reysol-chant.com/%E5%B0%8F%E5%B3%B6_%E4%BA%A8%E4%BB%8B.html' },
@@ -868,8 +868,10 @@ async function communitySubmit() {
     if (ta) ta.value = '';
     const cc = document.getElementById('char-count');
     if (cc) cc.textContent = '0 / 200';
+    if (btn) { btn.disabled = false; btn.textContent = replyingTo ? '返信する' : '投稿する'; }
   } catch(e) {
-    alert('投稿に失敗しました。');
+    console.error('投稿エラー:', e);
+    alert('投稿に失敗しました: ' + e.message);
     if (btn) { btn.disabled = false; btn.textContent = replyingTo ? '返信する' : '投稿する'; }
   }
 }
