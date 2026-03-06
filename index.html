@@ -159,14 +159,125 @@
 const Y = '#FFD700';
 
 // ── DATA ──────────────────────────────────────────────────────────────────────
-const matches = [
-  { id:5, date:'2026年3月7日(土)', time:'13:00', home:'ジェフ千葉', away:'柏レイソル', homeScore:null, awayScore:null, venue:'フクダ電子アリーナ', status:'upcoming', competition:'J1百年構想リーグ EAST 第5節' },
-  { id:6, date:'2026年3月14日(土)', time:'14:00', home:'柏レイソル', away:'FC町田ゼルビア', homeScore:null, awayScore:null, venue:'三協フロンテア柏スタジアム', status:'upcoming', competition:'J1百年構想リーグ EAST 第6節' },
-  { id:4, date:'2026年2月28日(土)', time:'試合終了', home:'FC東京', away:'柏レイソル', homeScore:0, awayScore:2, venue:'味の素スタジアム', status:'finished', competition:'J1百年構想リーグ EAST 第4節', scorers:["垣田裕暉 54'","瀬川祐輔 82'"] },
-  { id:3, date:'2026年2月21日(土)', time:'試合終了', home:'鹿島アントラーズ', away:'柏レイソル', homeScore:2, awayScore:0, venue:'MEIJI YASUDA J1 PARK茨城', status:'finished', competition:'J1百年構想リーグ EAST 第3節', scorers:[] },
-  { id:2, date:'2026年2月15日(日)', time:'試合終了', home:'柏レイソル', away:'東京ヴェルディ', homeScore:1, awayScore:2, venue:'三協フロンテア柏スタジアム', status:'finished', competition:'J1百年構想リーグ EAST 第2節', scorers:["小泉佳穂 33'"] },
-  { id:1, date:'2026年2月8日(日)', time:'試合終了', home:'川崎フロンターレ', away:'柏レイソル', homeScore:5, awayScore:3, venue:'Uvanceとどろきスタジアム', status:'finished', competition:'J1百年構想リーグ EAST 第1節', scorers:["垣田裕暉","瀬川祐輔","小見洋太"] },
-];
+// matches と standings はAPI取得で動的に設定
+let matches = [];
+let standings = [];
+let matchesLoading = false;
+let standingsLoading = false;
+let matchesError = false;
+let standingsError = false;
+
+const API_KEY = '37a095f37b3be013ccb82836dc2cb33a';
+const KASHIWA_ID = 2323;
+const J1_LEAGUE_ID = 98;
+const SEASON = 2026;
+
+// チーム名の日本語変換マップ
+const TEAM_JP = {
+  'Kashiwa Reysol': '柏レイソル',
+  'Kashima Antlers': '鹿島アントラーズ',
+  'FC Tokyo': 'FC東京',
+  'Tokyo Verdy': '東京ヴェルディ',
+  'Kawasaki Frontale': '川崎フロンターレ',
+  'Yokohama F.Marinos': '横浜F・マリノス',
+  'Yokohama F. Marinos': '横浜F・マリノス',
+  'Urawa Red Diamonds': '浦和レッズ',
+  'Gamba Osaka': 'ガンバ大阪',
+  'Cerezo Osaka': 'セレッソ大阪',
+  'Vissel Kobe': 'ヴィッセル神戸',
+  'Sanfrecce Hiroshima': 'サンフレッチェ広島',
+  'Nagoya Grampus': '名古屋グランパス',
+  'Sagan Tosu': 'サガン鳥栖',
+  'Shonan Bellmare': '湘南ベルマーレ',
+  'Avispa Fukuoka': 'アビスパ福岡',
+  'Kyoto Sanga FC': '京都サンガF.C.',
+  'Albirex Niigata': 'アルビレックス新潟',
+  'Machida Zelvia': 'FC町田ゼルビア',
+  'FC Machida Zelvia': 'FC町田ゼルビア',
+  'Jubilo Iwata': 'ジュビロ磐田',
+  'Consadole Sapporo': '北海道コンサドーレ札幌',
+  'JEF United Ichihara Chiba': 'ジェフ千葉',
+  'Mito HollyHock': '水戸ホーリーホック',
+};
+function toJP(name) { return TEAM_JP[name] || name; }
+
+function fmtDate(dateStr) {
+  const d = new Date(dateStr);
+  const days = ['日','月','火','水','木','金','土'];
+  return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日(${days[d.getDay()]})`;
+}
+function fmtTime(dateStr) {
+  const d = new Date(dateStr);
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+async function fetchMatches() {
+  matchesLoading = true;
+  matchesError = false;
+  if (activeTab === 'matches') render();
+  try {
+    const res = await fetch(
+      `https://v3.football.api-sports.io/fixtures?team=${KASHIWA_ID}&season=${SEASON}&league=${J1_LEAGUE_ID}`,
+      { headers: { 'x-apisports-key': API_KEY } }
+    );
+    const data = await res.json();
+    if (!data.response || data.response.length === 0) throw new Error('no data');
+    matches = data.response
+      .sort((a, b) => new Date(b.fixture.date) - new Date(a.fixture.date))
+      .map(f => {
+        const status = f.fixture.status.short;
+        const finished = ['FT','AET','PEN'].includes(status);
+        const live = ['1H','2H','ET','HT','P'].includes(status);
+        return {
+          id: f.fixture.id,
+          date: fmtDate(f.fixture.date),
+          time: fmtTime(f.fixture.date),
+          home: toJP(f.teams.home.name),
+          away: toJP(f.teams.away.name),
+          homeScore: finished || live ? f.goals.home : null,
+          awayScore: finished || live ? f.goals.away : null,
+          venue: f.fixture.venue.name || '',
+          status: finished ? 'finished' : (live ? 'live' : 'upcoming'),
+          competition: `J1リーグ 第${f.league.round?.replace('Regular Season - ','')}節`,
+          scorers: [],
+        };
+      });
+  } catch(e) {
+    matchesError = true;
+  }
+  matchesLoading = false;
+  if (activeTab === 'matches') render();
+}
+
+async function fetchStandings() {
+  standingsLoading = true;
+  standingsError = false;
+  if (activeTab === 'standings') render();
+  try {
+    const res = await fetch(
+      `https://v3.football.api-sports.io/standings?league=${J1_LEAGUE_ID}&season=${SEASON}`,
+      { headers: { 'x-apisports-key': API_KEY } }
+    );
+    const data = await res.json();
+    const table = data.response?.[0]?.league?.standings?.[0];
+    if (!table) throw new Error('no data');
+    standings = table.map(t => ({
+      pos: t.rank,
+      team: toJP(t.team.name),
+      played: t.all.played,
+      won: t.all.win,
+      draw: t.all.draw,
+      lost: t.all.lose,
+      gf: t.all.goals.for,
+      ga: t.all.goals.against,
+      pts: t.points,
+    }));
+  } catch(e) {
+    standingsError = true;
+  }
+  standingsLoading = false;
+  if (activeTab === 'standings') render();
+}
 
 const news = [
   { id:1, category:'試合結果', color:'#4caf50', source:'サッカーマガジンWEB', date:'2026/03/01', title:"亡き祖父へ捧げたゴール…先発落ちから奮起の柏MF瀬川祐輔が涙の追加点", summary:'FC東京戦で途中出場した瀬川祐輔が追加点を決め初勝利に貢献。今週亡くなった祖父への誓いを果たし、ゴール後は涙をおさえられなかった。', url:'https://soccermagazine.jp/j1/17824558', hot:true },
@@ -179,18 +290,6 @@ const news = [
   { id:8, category:'クラブ情報', color:'#ff9800', source:'柏レイソル公式', date:'2026/02/01', title:'2026シーズンポスター完成のお知らせ——古賀太陽・垣田裕暉・小見洋太・久保藤次郎の4選手が登場', summary:'2026シーズンの公式ポスターが完成。4選手が勢揃いしたデザインで、柏市内の複数のショップにて配布中。', url:'https://www.reysol.co.jp/news/', hot:false },
 ];
 
-const standings = [
-  { pos:1, team:'鹿島アントラーズ', played:4, won:3, draw:0, lost:1, gf:7, ga:3, pts:10 },
-  { pos:2, team:'FC町田ゼルビア', played:4, won:3, draw:1, lost:1, gf:9, ga:7, pts:9 },
-  { pos:3, team:'東京ヴェルディ', played:4, won:3, draw:1, lost:1, gf:9, ga:7, pts:8 },
-  { pos:4, team:'浦和レッズ', played:4, won:2, draw:0, lost:2, gf:7, ga:4, pts:7 },
-  { pos:5, team:'川崎フロンターレ', played:4, won:3, draw:2, lost:1, gf:8, ga:7, pts:7 },
-  { pos:6, team:'FC東京', played:4, won:3, draw:2, lost:1, gf:4, ga:5, pts:7 },
-  { pos:7, team:'水戸ホーリーホック', played:4, won:1, draw:1, lost:3, gf:6, ga:8, pts:4 },
-  { pos:8, team:'柏レイソル', played:4, won:1, draw:0, lost:3, gf:6, ga:9, pts:3 },
-  { pos:9, team:'横浜F・マリノス', played:4, won:1, draw:0, lost:3, gf:5, ga:8, pts:3 },
-  { pos:10, team:'ジェフ千葉', played:4, won:0, draw:0, lost:4, gf:2, ga:5, pts:2 },
-];
 
 // ── CHANT DATA ────────────────────────────────────────────────────────────────
 const chantData = {
@@ -426,23 +525,40 @@ function renderNews() {
 }
 
 function renderMatches() {
+  if (matchesLoading) return `
+    <div style="text-align:center;padding:48px 16px;color:#555">
+      <div style="font-size:32px;margin-bottom:12px">⏳</div>
+      <div style="font-size:13px">試合データを取得中...</div>
+    </div>`;
+  if (matchesError || matches.length === 0) return `
+    <div style="text-align:center;padding:48px 16px">
+      <div style="font-size:32px;margin-bottom:12px">⚠️</div>
+      <div style="color:#888;font-size:13px;margin-bottom:16px">データの取得に失敗しました</div>
+      <button onclick="fetchMatches()" style="background:var(--y);color:#1a1a1a;font-weight:900;font-size:13px;padding:10px 24px;border-radius:10px;border:none;cursor:pointer;font-family:inherit">🔄 再取得</button>
+    </div>`;
   return `
-    <div class="section-label">2026シーズン スケジュール</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div class="section-label" style="margin-bottom:0">2026シーズン 試合日程・結果</div>
+      <button onclick="fetchMatches()" style="background:none;border:1px solid #333;border-radius:8px;padding:4px 10px;color:#888;font-size:11px;cursor:pointer;font-family:inherit">🔄 更新</button>
+    </div>
     ${matches.map((m,i) => {
       const isReysolHome = m.home === '柏レイソル';
       const isReysolAway = m.away === '柏レイソル';
       const won = m.status==='finished' && (isReysolHome ? m.homeScore > m.awayScore : m.awayScore > m.homeScore);
+      const live = m.status === 'live';
       const expanded = expandedMatch === m.id;
       return `
-      <div class="card match-card ${won?'win':''} fade-in" style="animation-delay:${i*0.05}s" onclick="toggleMatch(${m.id})">
+      <div class="card match-card ${won?'win':''} fade-in" style="animation-delay:${i*0.05}s;${live?'border-color:#ff4444;':''}" onclick="toggleMatch(${m.id})">
         <div class="match-header">
           <span class="comp-text">${m.competition}</span>
-          <span class="status-badge ${m.status==='upcoming'?'upcoming':''}">${m.status==='finished'?'終了':`${m.time} KO`}</span>
+          <span class="status-badge ${m.status==='upcoming'?'upcoming':''}" ${live?'style="background:#ff4444;color:#fff"':''}>
+            ${m.status==='finished'?'終了': live?'⚡ LIVE':`${m.time} KO`}
+          </span>
         </div>
         <div class="match-row">
           <div style="flex:1"><span class="team-name ${isReysolHome?'reysol':''}">${m.home}</span></div>
           <div class="score-box">
-            ${m.status==='finished'
+            ${m.status!=='upcoming'
               ? `<span class="score-text"><span style="color:${isReysolHome?Y:'#fff'}">${m.homeScore}</span><span style="color:#555"> - </span><span style="color:${isReysolAway?Y:'#fff'}">${m.awayScore}</span></span>`
               : `<span class="vs-text">VS</span>`}
           </div>
@@ -524,8 +640,22 @@ function renderChant() {
 }
 
 function renderStandings() {
+  if (standingsLoading) return `
+    <div style="text-align:center;padding:48px 16px;color:#555">
+      <div style="font-size:32px;margin-bottom:12px">⏳</div>
+      <div style="font-size:13px">順位表を取得中...</div>
+    </div>`;
+  if (standingsError || standings.length === 0) return `
+    <div style="text-align:center;padding:48px 16px">
+      <div style="font-size:32px;margin-bottom:12px">⚠️</div>
+      <div style="color:#888;font-size:13px;margin-bottom:16px">データの取得に失敗しました</div>
+      <button onclick="fetchStandings()" style="background:var(--y);color:#1a1a1a;font-weight:900;font-size:13px;padding:10px 24px;border-radius:10px;border:none;cursor:pointer;font-family:inherit">🔄 再取得</button>
+    </div>`;
   return `
-    <div class="section-label">明治安田J1百年構想リーグ EAST 2026 第4節終了時</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div class="section-label" style="margin-bottom:0">明治安田J1リーグ 2026 順位表</div>
+      <button onclick="fetchStandings()" style="background:none;border:1px solid #333;border-radius:8px;padding:4px 10px;color:#888;font-size:11px;cursor:pointer;font-family:inherit">🔄 更新</button>
+    </div>
     <div class="standings-table">
       <div class="standings-head">
         <span>#</span><span>チーム</span><span style="text-align:center">試</span>
@@ -604,6 +734,8 @@ function setBBSPage(p) {
 // ── INIT ──────────────────────────────────────────────────────────────────────
 render();
 fetchRSS();
+fetchMatches();
+fetchStandings();
 
 // Service Worker
 if ('serviceWorker' in navigator) {
