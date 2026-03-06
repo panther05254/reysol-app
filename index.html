@@ -290,6 +290,12 @@ async function fetchMatches() {
   if (activeTab === 'matches') render();
 }
 
+// 東グループ（柏レイソル所属）のチーム
+const EAST_GROUP = new Set([
+  '柏レイソル','鹿島アントラーズ','FC東京','東京ヴェルディ','FC町田ゼルビア',
+  '川崎フロンターレ','横浜F・マリノス','浦和レッズ','ジェフ千葉','水戸ホーリーホック',
+]);
+
 async function fetchStandings() {
   standingsLoading = true;
   standingsError = false;
@@ -300,18 +306,25 @@ async function fetchStandings() {
     console.log('[Reysol] standings raw:', JSON.stringify((data.table||[])[0]));
     const table = data.table;
     if (!table || table.length === 0) throw new Error('no standings');
-    standings = table.map(t => {
-      // TheSportsDBのフィールド名を両方試す
-      const pos   = parseInt(t.intRank || t.intPosition || 0);
-      const won   = parseInt(t.intWin  || t.intW || t.intWon || 0);
-      const draw  = parseInt(t.intDraw || t.intD || 0);
-      const lost  = parseInt(t.intLoss || t.intL || t.intLost || 0);
-      const gf    = parseInt(t.intGoalsFor     || t.intGF || 0);
-      const ga    = parseInt(t.intGoalsAgainst || t.intGA || 0);
-      const pts   = parseInt(t.intPoints || t.intPts || 0);
-      const played= parseInt(t.intPlayed || (won + draw + lost) || 0);
-      return { pos, team: toJP(t.strTeam), played, won, draw, lost, gf, ga, pts };
-    }).sort((a, b) => a.pos - b.pos);
+    standings = table
+      .map(t => {
+        const won   = parseInt(t.intWin  || t.intW || t.intWon || 0);
+        const draw  = parseInt(t.intDraw || t.intD || 0);
+        const lost  = parseInt(t.intLoss || t.intL || t.intLost || 0);
+        const gf    = parseInt(t.intGoalsFor     || t.intGF || 0);
+        const ga    = parseInt(t.intGoalsAgainst || t.intGA || 0);
+        const pts   = parseInt(t.intPoints || t.intPts || 0);
+        const played= parseInt(t.intPlayed || (won + draw + lost) || 0);
+        return {
+          pos: parseInt(t.intRank || t.intPosition || 0),
+          team: toJP(t.strTeam),
+          played, won, draw, lost, gf, ga, pts,
+        };
+      })
+      .filter(t => EAST_GROUP.has(t.team))  // 東グループのみ
+      .sort((a, b) => b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga)); // 勝点→得失点差でソート
+    // 表示用順位を再割り当て
+    standings.forEach((t, i) => t.pos = i + 1);
   } catch(e) {
     console.error('[Reysol] fetchStandings error:', e);
     standingsError = true;
@@ -704,7 +717,7 @@ function renderStandings() {
     </div>`;
   return `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-      <div class="section-label" style="margin-bottom:0">明治安田J1リーグ 2026 順位表</div>
+      <div style="font-size:11px;color:#888;margin-bottom:4px">🗾 EASTグループ（柏レイソル所属）</div>
       <button onclick="fetchStandings()" style="background:none;border:1px solid #333;border-radius:8px;padding:4px 10px;color:#888;font-size:11px;cursor:pointer;font-family:inherit">🔄 更新</button>
     </div>
     <div class="standings-table">
