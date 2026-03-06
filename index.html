@@ -1252,16 +1252,32 @@ window.submitPost = async function() {
   const text = ta?.value?.trim();
   if (!text && !selectedPhoto) return;
   if (text && text.length > 200) return;
-  try {
-    photoUploading = true;
-    renderCommunityDOM();
 
+  photoUploading = true;
+  renderCommunityDOM();
+
+  try {
     let imageUrl = null;
     if (selectedPhoto) {
-      const ext = selectedPhoto.file.name.split('.').pop() || 'jpg';
-      const path = `posts/${currentUser.uid}_${Date.now()}.${ext}`;
+      // Canvas でリサイズ（最大幅1080px、JPEG変換）
+      const resized = await new Promise(resolve => {
+        const img = new Image();
+        const blobUrl = URL.createObjectURL(selectedPhoto.file);
+        img.onload = () => {
+          URL.revokeObjectURL(blobUrl);
+          const ratio = Math.min(1, 1080 / img.width);
+          const w = Math.round(img.width * ratio);
+          const h = Math.round(img.height * ratio);
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.82);
+        };
+        img.src = blobUrl;
+      });
+      const path = `posts/${currentUser.uid}_${Date.now()}.jpg`;
       const storageRef = sref(storage, path);
-      await uploadBytes(storageRef, selectedPhoto.file, { contentType: selectedPhoto.file.type });
+      await uploadBytes(storageRef, resized, { contentType: 'image/jpeg' });
       imageUrl = await getDownloadURL(storageRef);
       URL.revokeObjectURL(selectedPhoto.previewUrl);
       selectedPhoto = null;
@@ -1289,8 +1305,8 @@ window.submitPost = async function() {
     const cc = document.getElementById('char-count');
     if (cc) cc.textContent = '0 / 200';
   } catch(e) {
-    console.error(e);
-    alert('投稿に失敗しました。');
+    console.error('[Reysol] submitPost error:', e);
+    alert(`投稿に失敗しました。\n${e.code || e.message}`);
   }
   photoUploading = false;
   renderCommunityDOM();
