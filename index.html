@@ -256,10 +256,10 @@ function tsdbEventToMatch(e) {
 // 柏レイソル 2026年 全試合日程（静的・ゲキサカより）
 // status: 'finished'=終了, 'upcoming'=予定
 const KASHIWA_SCHEDULE = [
-  { round:'第1節',  rawDate:'2026-02-08', time:'14:00', home:'川崎フロンターレ', away:'柏レイソル',   venue:'Uvanceとどろきスタジアム by Fujitsu' },
-  { round:'第2節',  rawDate:'2026-02-15', time:'13:00', home:'柏レイソル',       away:'東京ヴェルディ', venue:'三協フロンテア柏スタジアム' },
-  { round:'第3節',  rawDate:'2026-02-21', time:'14:00', home:'鹿島アントラーズ', away:'柏レイソル',   venue:'カシマスタジアム' },
-  { round:'第4節',  rawDate:'2026-02-28', time:'15:00', home:'FC東京',           away:'柏レイソル',   venue:'味の素スタジアム' },
+  { round:'第1節',  rawDate:'2026-02-08', time:'14:00', home:'川崎フロンターレ', away:'柏レイソル',   venue:'Uvanceとどろきスタジアム by Fujitsu', homeScore:5, awayScore:3 },
+  { round:'第2節',  rawDate:'2026-02-15', time:'13:00', home:'柏レイソル',       away:'東京ヴェルディ', venue:'三協フロンテア柏スタジアム', homeScore:1, awayScore:2 },
+  { round:'第3節',  rawDate:'2026-02-21', time:'14:00', home:'鹿島アントラーズ', away:'柏レイソル',   venue:'カシマスタジアム', homeScore:2, awayScore:0 },
+  { round:'第4節',  rawDate:'2026-02-28', time:'15:00', home:'FC東京',           away:'柏レイソル',   venue:'味の素スタジアム', homeScore:0, awayScore:2 },
   { round:'第5節',  rawDate:'2026-03-07', time:'13:00', home:'ジェフ千葉',       away:'柏レイソル',   venue:'フクダ電子アリーナ' },
   { round:'第6節',  rawDate:'2026-03-14', time:'14:00', home:'柏レイソル',       away:'FC町田ゼルビア', venue:'三協フロンテア柏スタジアム' },
   { round:'第7節',  rawDate:'2026-03-18', time:'19:30', home:'浦和レッズ',       away:'柏レイソル',   venue:'埼玉スタジアム2002' },
@@ -285,7 +285,8 @@ async function fetchMatches() {
     const today = new Date();
     const base = KASHIWA_SCHEDULE.map((s, i) => {
       const dt = new Date(s.rawDate + 'T' + s.time + ':00+09:00');
-      const finished = dt < today;
+      const hasStaticScore = s.homeScore !== undefined;
+      const finished = hasStaticScore || dt < today;
       return {
         id: 'k' + i,
         rawDate: s.rawDate,
@@ -297,8 +298,8 @@ async function fetchMatches() {
         time: s.time,
         home: s.home,
         away: s.away,
-        homeScore: null,
-        awayScore: null,
+        homeScore: hasStaticScore ? s.homeScore : null,
+        awayScore: hasStaticScore ? s.awayScore : null,
         venue: s.venue,
         status: finished ? 'finished' : 'upcoming',
         competition: s.round + ' J1百年構想リーグ',
@@ -314,9 +315,9 @@ async function fetchMatches() {
       const [nextData, lastData] = await Promise.all([nextRes.json(), lastRes.json()]);
       const apiEvents = [...(nextData.events||[]), ...(lastData.results||[])];
 
-      // 日付でマッチングしてスコアを上書き
+      // 日付でマッチングしてスコアを上書き（静的スコアがない場合のみ）
       for (const e of apiEvents) {
-        const match = base.find(m => m.rawDate === e.dateEvent);
+        const match = base.find(m => m.rawDate === e.dateEvent && m.homeScore === null);
         if (match && e.intHomeScore != null && e.intHomeScore !== '') {
           match.homeScore = parseInt(e.intHomeScore);
           match.awayScore = parseInt(e.intAwayScore);
