@@ -763,7 +763,10 @@ function renderCommunityDOM() {
         <span style="color:var(--y);font-weight:900;font-size:15px">💬 トーク</span>
         <span style="color:#555;font-size:11px;margin-left:8px">${communityPosts.length}件の投稿</span>
       </div>
-      <button onclick="window.changeNickname()" style="background:none;border:1px solid #333;border-radius:8px;padding:4px 10px;color:#888;font-size:11px;cursor:pointer;font-family:inherit">👤 ${escapeHtml(nickname)}</button>
+      <button onclick="window.changeNickname()" style="display:flex;align-items:center;gap:6px;background:none;border:1px solid #333;border-radius:20px;padding:4px 10px 4px 4px;cursor:pointer;font-family:inherit">
+        <div style="width:22px;height:22px;background:${nickColor(nickname).bg};border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:11px;flex-shrink:0">${escapeHtml(nickname)[0]}</div>
+        <span style="color:#888;font-size:11px">${escapeHtml(nickname)}</span>
+      </button>
     </div>
 
     <div style="background:var(--card);border-radius:14px;padding:13px;margin-bottom:14px;border:1px solid color-mix(in srgb,var(--y) 25%,transparent)">
