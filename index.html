@@ -506,10 +506,41 @@ window.lastReadReplyTs = parseInt(localStorage.getItem('reysol_last_read_reply_t
 
 // ── RSS FETCH ─────────────────────────────────────────────────────────────────
 const RSS_SOURCES = [
-  { url: 'https://www.reysol.co.jp/feed/', source: '柏レイソル公式', category: 'クラブ情報', color: '#ff9800' },
-  { url: 'https://web.gekisaka.jp/feed/jleague/', source: 'ゲキサカ', category: '試合結果', color: '#4caf50' },
-  { url: 'https://www1.targma.jp/kashiwa/feed/', source: '柏フットボールジャーナル', category: 'マッチコラム', color: '#e91e63' },
+  { url: 'https://www.reysol.co.jp/feed/',                   source: '柏レイソル公式',       category: 'クラブ情報',   color: '#ff9800', kashiwaOnly: true },
+  { url: 'https://www1.targma.jp/kashiwa/feed/',             source: '柏フットボールジャーナル', category: 'マッチコラム', color: '#e91e63', kashiwaOnly: true },
+  { url: 'https://web.gekisaka.jp/feed/jleague/',            source: 'ゲキサカ',             category: '試合結果',    color: '#4caf50', kashiwaOnly: false },
+  { url: 'https://soccer.yahoo.co.jp/rss/news/kashiwa.xml', source: 'Yahoo!スポーツ',       category: 'ニュース',     color: '#6366f1', kashiwaOnly: true },
+  { url: 'https://news.google.com/rss/search?q=柏レイソル&hl=ja&gl=JP&ceid=JP:ja', source: 'Google News', category: 'ニュース', color: '#1a73e8', kashiwaOnly: true },
 ];
+
+// RSSをプロキシ経由で取得（複数プロキシを順番に試す）
+async function fetchRSSUrl(url) {
+  const proxies = [
+    u => `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(u)}&count=30`,
+    u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+  ];
+  for (const proxy of proxies) {
+    try {
+      const res = await fetch(proxy(url), { signal: AbortSignal.timeout(6000) });
+      const data = await res.json();
+      // rss2json形式
+      if (data.status === 'ok' && data.items) return { items: data.items, format: 'rss2json' };
+      // allorigins形式 → XMLをパース
+      if (data.contents) {
+        const parser = new DOMParser();
+        const xml = parser.parseFromString(data.contents, 'text/xml');
+        const items = [...xml.querySelectorAll('item')].map(el => ({
+          title:       el.querySelector('title')?.textContent || '',
+          link:        el.querySelector('link')?.textContent || '',
+          pubDate:     el.querySelector('pubDate')?.textContent || '',
+          description: el.querySelector('description')?.textContent || '',
+        }));
+        if (items.length > 0) return { items, format: 'xml' };
+      }
+    } catch(e) { /* 次のプロキシへ */ }
+  }
+  return null;
+}
 
 async function fetchRSS() {
   rssLoading = true;
@@ -520,37 +551,46 @@ async function fetchRSS() {
 
   await Promise.all(RSS_SOURCES.map(async (src) => {
     try {
-      const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(src.url)}&api_key=public&count=30`;
-      const res = await fetch(apiUrl);
-      const data = await res.json();
-      if (data.status !== 'ok') return;
-      data.items.forEach(item => {
-        const text = (item.title + ' ' + (item.description||'')).toLowerCase();
-        const isReysol = src.source === '柏レイソル公式' || src.source === '柏フットボールジャーナル'
-          || text.includes('柏') || text.includes('reysol') || text.includes('レイソル');
+      const result = await fetchRSSUrl(src.url);
+      if (!result) return;
+      result.items.forEach(item => {
+        const title = item.title || '';
+        const desc  = item.description || item.content || '';
+        const text  = (title + ' ' + desc).toLowerCase();
+        const isReysol = src.kashiwaOnly
+          || text.includes('柏') || text.includes('reysol') || text.includes('レイソル')
+          || text.includes('kashiwa');
         if (!isReysol) return;
         const pubDate = new Date(item.pubDate);
+        if (isNaN(pubDate)) return;
         const dateStr = `${pubDate.getFullYear()}/${String(pubDate.getMonth()+1).padStart(2,'0')}/${String(pubDate.getDate()).padStart(2,'0')}`;
-        const summary = (item.description || '').replace(/<[^>]+>/g,'').slice(0, 100);
+        const summary = desc.replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim().slice(0, 120);
         allItems.push({
-          id: item.link,
+          id: item.link || title,
           category: src.category,
           color: src.color,
           source: src.source,
           date: dateStr,
-          pubDate: pubDate,
-          title: item.title,
-          summary: summary,
-          url: item.link,
+          pubDate,
+          title,
+          summary,
+          url: item.link || '#',
           hot: false,
         });
       });
-    } catch(e) {}
+    } catch(e) { console.warn('[Reysol] RSS failed:', src.source, e.message); }
   }));
 
   if (allItems.length > 0) {
+    // 重複タイトル除去 & 日付降順
+    const seen = new Set();
     allItems.sort((a, b) => b.pubDate - a.pubDate);
-    rssNews = allItems.slice(0, 40);
+    rssNews = allItems.filter(item => {
+      const key = item.title.slice(0, 30);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).slice(0, 50);
     rssError = false;
   } else {
     rssNews = news;
@@ -643,7 +683,7 @@ function renderNews() {
   return `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div style="color:#555;font-size:11px">
-        ${rssError ? '⚠️ オフライン — キャッシュ表示中' : `✅ ${displayNews.length}件取得 · リアルタイム`}
+        ${rssError && rssNews === news ? '⚠️ RSSオフライン — 固定記事表示中' : `✅ ${displayNews.length}件取得`}
       </div>
       <button onclick="fetchRSS()" style="background:none;border:1px solid #333;border-radius:8px;padding:4px 10px;color:#888;font-size:11px;cursor:pointer;font-family:inherit">🔄 更新</button>
     </div>
