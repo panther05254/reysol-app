@@ -238,6 +238,7 @@ function tsdbEventToMatch(e) {
      e.intAwayScore !== null && e.intAwayScore !== '' &&
      e.strStatus !== 'Not Started');
   return {
+    rawDate: e.dateEvent || '',
     id: e.idEvent,
     date: fmtDate(e.dateEvent, e.strTime),
     time: fmtTime(e.dateEvent, e.strTime),
@@ -257,30 +258,39 @@ async function fetchMatches() {
   matchesError = false;
   if (activeTab === 'matches') render();
   try {
-    const [nextRes, pastRes] = await Promise.all([
-      fetch(`${TSDB}/eventsnextleague.php?id=${J1_ID}`),
-      fetch(`${TSDB}/eventspastleague.php?id=${J1_ID}`),
-    ]);
-    const [nextData, pastData] = await Promise.all([nextRes.json(), pastRes.json()]);
-    console.log('[Reysol] next events:', nextData);
-    console.log('[Reysol] past events:', pastData);
+    // eventsseason で2026年全試合取得 → 柏レイソルのみ絞り込み
+    const res = await fetch(`${TSDB}/eventsseason.php?id=${J1_ID}&s=2026`);
+    const data = await res.json();
+    const all = data.events || [];
 
-    const all = [
-      ...(nextData.events || []),
-      ...(pastData.events || []),
-    ];
-    // 柏レイソル関連のみ絞り込み
     const reysol = all.filter(e =>
       e.strHomeTeam?.includes('Kashiwa') || e.strAwayTeam?.includes('Kashiwa')
     );
-    if (reysol.length === 0) throw new Error('no reysol matches');
+    if (reysol.length === 0) {
+      // フォールバック: eventsnext + eventspast
+      const [nextRes, pastRes] = await Promise.all([
+        fetch(`${TSDB}/eventsnextleague.php?id=${J1_ID}`),
+        fetch(`${TSDB}/eventspastleague.php?id=${J1_ID}`),
+      ]);
+      const [nextData, pastData] = await Promise.all([nextRes.json(), pastRes.json()]);
+      const fallback = [
+        ...(nextData.events || []),
+        ...(pastData.events || []),
+      ].filter(e => e.strHomeTeam?.includes('Kashiwa') || e.strAwayTeam?.includes('Kashiwa'));
+      if (fallback.length === 0) throw new Error('no reysol matches');
+      reysol.push(...fallback);
+    }
+
     matches = reysol
       .map(tsdbEventToMatch)
       .sort((a, b) => {
-        // 終了済みを上に、今後を下に
-        if (a.status === 'finished' && b.status !== 'finished') return -1;
-        if (a.status !== 'finished' && b.status === 'finished') return 1;
-        return 0;
+        // 終了済みは日付降順（新しい順）、今後は日付昇順（近い順）
+        const aDate = new Date(a.rawDate || a.date);
+        const bDate = new Date(b.rawDate || b.date);
+        if (a.status === 'finished' && b.status === 'finished') return bDate - aDate;
+        if (a.status !== 'finished' && b.status !== 'finished') return aDate - bDate;
+        if (a.status === 'finished') return -1;
+        return 1;
       });
   } catch(e) {
     console.error('[Reysol] fetchMatches error:', e);
