@@ -812,7 +812,7 @@ function renderCommunityDOM() {
         style="width:100%;background:#111;border:1px solid #333;border-radius:10px;padding:10px 12px;color:#fff;font-size:14px;font-family:inherit;resize:none;height:70px;outline:none;margin-bottom:10px;"></textarea>
       <div style="display:flex;align-items:center;justify-content:space-between">
         <span id="char-count" style="color:#555;font-size:11px">0 / 200</span>
-        <button id="submit-btn" onclick="communitySubmit()" style="background:var(--y);color:#1a1a1a;font-weight:900;font-size:13px;padding:8px 20px;border-radius:10px;border:none;cursor:pointer;font-family:inherit">${replyingTo?'返信する':'投稿する'}</button>
+        <button id="submit-btn" style="background:var(--y);color:#1a1a1a;font-weight:900;font-size:13px;padding:8px 20px;border-radius:10px;border:none;cursor:pointer;font-family:inherit">${replyingTo?'返信する':'投稿する'}</button>
       </div>
     </div>
     ${communityPosts.length === 0
@@ -821,7 +821,9 @@ function renderCommunityDOM() {
 
   const ta = document.getElementById('post-input');
   const cc = document.getElementById('char-count');
+  const btn = document.getElementById('submit-btn');
   if (ta && cc) ta.oninput = () => { cc.textContent = ta.value.length + ' / 200'; };
+  if (btn) btn.addEventListener('click', communitySubmit);
 }
 
 // ── COMMUNITY TAB ENTRY ───────────────────────────────────────────────────────
