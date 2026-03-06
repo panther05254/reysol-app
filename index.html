@@ -507,10 +507,10 @@ window.lastReadReplyTs = parseInt(localStorage.getItem('reysol_last_read_reply_t
 // ── RSS FETCH ─────────────────────────────────────────────────────────────────
 const RSS_SOURCES = [
   { url: 'https://www.reysol.co.jp/feed/',                   source: '柏レイソル公式',       category: 'クラブ情報',   color: '#ff9800', kashiwaOnly: true },
-  { url: 'https://www1.targma.jp/kashiwa/feed/',             source: '柏フットボールジャーナル', category: 'マッチコラム', color: '#e91e63', kashiwaOnly: true },
   { url: 'https://web.gekisaka.jp/feed/jleague/',            source: 'ゲキサカ',             category: '試合結果',    color: '#4caf50', kashiwaOnly: false },
   { url: 'https://soccer.yahoo.co.jp/rss/news/kashiwa.xml', source: 'Yahoo!スポーツ',       category: 'ニュース',     color: '#6366f1', kashiwaOnly: true },
   { url: 'https://news.google.com/rss/search?q=柏レイソル&hl=ja&gl=JP&ceid=JP:ja', source: 'Google News', category: 'ニュース', color: '#1a73e8', kashiwaOnly: true },
+  { url: 'https://sportsnavi.ht.kyodo-d.jp/soccer/jleague/j1/rss/kashiwa.xml', source: 'スポーツナビ', category: 'ニュース', color: '#e53935', kashiwaOnly: true },
 ];
 
 // RSSをプロキシ経由で取得（複数プロキシを順番に試す）
