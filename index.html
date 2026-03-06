@@ -290,48 +290,57 @@ async function fetchMatches() {
   if (activeTab === 'matches') render();
 }
 
-// 東グループ（柏レイソル所属）のキーワード
-const EAST_KEYWORDS = [
-  '柏','鹿島','FC東京','東京ヴェルディ','町田','川崎','横浜F','浦和','千葉','水戸',
-  'Kashiwa','Kashima','FC Tokyo','Tokyo Verdy','Machida','Kawasaki','Yokohama','Urawa','Chiba','Mito',
-];
+// 東グループ 10チーム（固定）
+const EAST_TEAMS = new Set([
+  '柏レイソル','鹿島アントラーズ','FC東京','東京ヴェルディ','FC町田ゼルビア',
+  '川崎フロンターレ','横浜F・マリノス','浦和レッズ','ジェフ千葉','水戸ホーリーホック',
+]);
 
 async function fetchStandings() {
   standingsLoading = true;
   standingsError = false;
   if (activeTab === 'standings') render();
   try {
-    const res = await fetch(`${TSDB}/lookuptable.php?l=${J1_ID}&s=2026`);
-    const data = await res.json();
-    const table = data.table;
-    if (!table || table.length === 0) throw new Error('no standings');
-    // 全チーム名をログ出力（デバッグ用）
-    console.log('[Reysol] all teams in table:', table.map(t => t.strTeam));
-    const allRows = table.map(t => {
-      const won   = parseInt(t.intWin  || t.intW   || t.intWon  || 0);
-      const draw  = parseInt(t.intDraw || t.intD   || 0);
-      const lost  = parseInt(t.intLoss || t.intL   || t.intLost || 0);
-      const gf    = parseInt(t.intGoalsFor     || t.intGF || 0);
-      const ga    = parseInt(t.intGoalsAgainst || t.intGA || 0);
-      const pts   = parseInt(t.intPoints || t.intPts || 0);
-      const played= parseInt(t.intPlayed || (won + draw + lost) || 0);
-      return {
-        pos: parseInt(t.intRank || t.intPosition || 0),
-        team: toJP(t.strTeam),
-        rawTeam: t.strTeam,
-        played, won, draw, lost, gf, ga, pts,
-      };
-    });
-    // 東グループのみ：部分一致でフィルタ
-    const east = allRows.filter(t =>
-      EAST_KEYWORDS.some(kw => t.team.includes(kw) || t.rawTeam.includes(kw))
-    );
-    console.log('[Reysol] east group:', east.map(t => t.team));
-    // 10チーム取れない場合は全件表示にフォールバック
-    const base = east.length >= 5 ? east : allRows;
-    standings = base
-      .sort((a, b) => b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga))
-      .map((t, i) => ({ ...t, pos: i + 1 }));
+    // eventsseason で2026年の全試合を取得（最大200件・無料枠）
+    const seasonRes = await fetch(`${TSDB}/eventsseason.php?id=${J1_ID}&s=2026`);
+    const seasonData = await seasonRes.json();
+    const allEvents = seasonData.events || [];
+
+    // 東グループチームの成績を集計
+    const table = {};
+    for (const team of EAST_TEAMS) {
+      table[team] = { team, played:0, won:0, draw:0, lost:0, gf:0, ga:0, pts:0 };
+    }
+
+    for (const e of allEvents) {
+      const home = toJP(e.strHomeTeam);
+      const away = toJP(e.strAwayTeam);
+      const hg = parseInt(e.intHomeScore);
+      const ag = parseInt(e.intAwayScore);
+      // 両チームが東グループかつ試合終了済みのみ
+      if (!EAST_TEAMS.has(home) || !EAST_TEAMS.has(away)) continue;
+      if (isNaN(hg) || isNaN(ag)) continue;
+
+      table[home].played++; table[home].gf += hg; table[home].ga += ag;
+      table[away].played++; table[away].gf += ag; table[away].ga += hg;
+
+      if (hg > ag) {
+        table[home].won++; table[home].pts += 3;
+        table[away].lost++;
+      } else if (hg < ag) {
+        table[away].won++; table[away].pts += 3;
+        table[home].lost++;
+      } else {
+        table[home].draw++; table[home].pts++;
+        table[away].draw++; table[away].pts++;
+      }
+    }
+
+    standings = Object.values(table)
+      .sort((a, b) => b.pts - a.pts || (b.gf-b.ga) - (a.gf-a.ga) || b.gf - a.gf)
+      .map((t, i) => ({ ...t, pos: i+1 }));
+
+    if (standings.every(t => t.played === 0)) throw new Error('no finished matches yet');
   } catch(e) {
     console.error('[Reysol] fetchStandings error:', e);
     standingsError = true;
