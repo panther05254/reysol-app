@@ -696,11 +696,16 @@ let communityPosts = [];
 let unsubPosts   = null;
 let replyingTo   = null;
 let openReplies  = {};
+let isSubmitting = false;
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
-auth.signInAnonymously();
+auth.signInAnonymously().catch(e => {
+  console.error('匿名認証エラー:', e);
+  alert('認証エラー: ' + e.message);
+});
 auth.onAuthStateChanged(user => {
   currentUser = user;
+  console.log('Auth state:', user ? 'ログイン済み uid=' + user.uid : 'null');
   renderCommunityDOM();
 });
 
@@ -711,7 +716,7 @@ function subscribePosts() {
   unsubPosts = q.on('value', snap => {
     communityPosts = [];
     snap.forEach(child => communityPosts.unshift({ id: child.key, ...child.val() }));
-    renderCommunityDOM();
+    if (!isSubmitting) renderCommunityDOM();
   });
 }
 
@@ -851,13 +856,17 @@ function communityStartReply(postId, nick) {
 function communityCancel() { replyingTo = null; renderCommunityDOM(); }
 function communityToggleReplies(postId) { openReplies[postId] = !openReplies[postId]; renderCommunityDOM(); }
 async function communitySubmit() {
-  if (!currentUser) { alert('認証中です。少し待ってから再試行してください。'); return; }
+  console.log('submit called, currentUser:', currentUser, 'nickname:', nickname);
+  if (!currentUser) { alert('認証中です。ページをリロードして再試行してください。'); return; }
+  if (!nickname) { alert('ニックネームを設定してください。'); return; }
   const ta  = document.getElementById('post-input');
   const btn = document.getElementById('submit-btn');
   const text = (ta && ta.value.trim()) || '';
   if (!text || text.length > 200) return;
+  isSubmitting = true;
   if (btn) { btn.disabled = true; btn.textContent = '送信中...'; }
   try {
+    console.log('Writing to Firebase...');
     if (replyingTo) {
       await db.ref('posts/' + replyingTo.id + '/replies').push({ text, nick: nickname, uid: currentUser.uid, ts: firebase.database.ServerValue.TIMESTAMP });
       openReplies[replyingTo.id] = true;
@@ -865,14 +874,18 @@ async function communitySubmit() {
     } else {
       await db.ref('posts').push({ text, nick: nickname, uid: currentUser.uid, ts: firebase.database.ServerValue.TIMESTAMP, likes: 0, likedBy: {} });
     }
+    console.log('Write success!');
     if (ta) ta.value = '';
     const cc = document.getElementById('char-count');
     if (cc) cc.textContent = '0 / 200';
     if (btn) { btn.disabled = false; btn.textContent = replyingTo ? '返信する' : '投稿する'; }
   } catch(e) {
-    console.error('投稿エラー:', e);
-    alert('投稿に失敗しました: ' + e.message);
+    console.error('投稿エラー:', e.code, e.message);
+    alert('投稿エラー: ' + e.code + '\n' + e.message);
     if (btn) { btn.disabled = false; btn.textContent = replyingTo ? '返信する' : '投稿する'; }
+  } finally {
+    isSubmitting = false;
+    renderCommunityDOM();
   }
 }
 async function communityLike(postId) {
