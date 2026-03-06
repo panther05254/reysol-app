@@ -681,7 +681,7 @@ function renderMatches() {
       <div class="section-label" style="margin-bottom:0">2026シーズン 試合日程・結果</div>
       <button onclick="fetchMatches()" style="background:none;border:1px solid #333;border-radius:8px;padding:4px 10px;color:#888;font-size:11px;cursor:pointer;font-family:inherit">🔄 更新</button>
     </div>
-    ${matches.map((m,i) => {
+    ${matches.filter(m => !(m.status === 'finished' && m.homeScore === null)).map((m,i) => {
       const isReysolHome = m.home === '柏レイソル';
       const isReysolAway = m.away === '柏レイソル';
       const won = m.status==='finished' && (isReysolHome ? m.homeScore > m.awayScore : m.awayScore > m.homeScore);
