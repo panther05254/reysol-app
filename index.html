@@ -716,13 +716,10 @@ function subscribePosts() {
   unsubPosts = q.on('value', snap => {
     communityPosts = [];
     snap.forEach(child => communityPosts.unshift({ id: child.key, ...child.val() }));
-    // textarea の内容を保持したまま再描画
-    const oldText = (document.getElementById('post-input') || {}).value || '';
-    renderCommunityDOM();
-    const newTa = document.getElementById('post-input');
-    if (newTa && oldText) newTa.value = oldText;
-    const cc = document.getElementById('char-count');
-    if (cc && oldText) cc.textContent = oldText.length + ' / 200';
+    // コミュニティタブが表示中のときだけ再描画
+    if (window.activeTab === 'community') {
+      renderCommunityDOM();
+    }
   });
 }
 
