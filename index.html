@@ -1265,6 +1265,8 @@ function resizeImage(file, maxWidth = 1080, quality = 0.82) {
     img.src = url;
   });
 }
+
+window.submitPost = async function() {
   if (!currentUser) return alert('認証中です。しばらくお待ちください。');
   const ta = document.getElementById('post-input');
   const text = ta?.value?.trim();
