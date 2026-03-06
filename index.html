@@ -253,45 +253,88 @@ function tsdbEventToMatch(e) {
   };
 }
 
+// 柏レイソル 2026年 全試合日程（静的・ゲキサカより）
+// status: 'finished'=終了, 'upcoming'=予定
+const KASHIWA_SCHEDULE = [
+  { round:'第1節',  rawDate:'2026-02-08', time:'14:00', home:'川崎フロンターレ', away:'柏レイソル',   venue:'Uvanceとどろきスタジアム by Fujitsu' },
+  { round:'第2節',  rawDate:'2026-02-15', time:'13:00', home:'柏レイソル',       away:'東京ヴェルディ', venue:'三協フロンテア柏スタジアム' },
+  { round:'第3節',  rawDate:'2026-02-21', time:'14:00', home:'鹿島アントラーズ', away:'柏レイソル',   venue:'カシマスタジアム' },
+  { round:'第4節',  rawDate:'2026-02-28', time:'15:00', home:'FC東京',           away:'柏レイソル',   venue:'味の素スタジアム' },
+  { round:'第5節',  rawDate:'2026-03-07', time:'13:00', home:'ジェフ千葉',       away:'柏レイソル',   venue:'フクダ電子アリーナ' },
+  { round:'第6節',  rawDate:'2026-03-14', time:'14:00', home:'柏レイソル',       away:'FC町田ゼルビア', venue:'三協フロンテア柏スタジアム' },
+  { round:'第7節',  rawDate:'2026-03-18', time:'19:30', home:'浦和レッズ',       away:'柏レイソル',   venue:'埼玉スタジアム2002' },
+  { round:'第8節',  rawDate:'2026-03-22', time:'16:00', home:'柏レイソル',       away:'水戸ホーリーホック', venue:'三協フロンテア柏スタジアム' },
+  { round:'第9節',  rawDate:'2026-04-04', time:'13:00', home:'柏レイソル',       away:'横浜F・マリノス', venue:'三協フロンテア柏スタジアム' },
+  { round:'第10節', rawDate:'2026-04-11', time:'14:00', home:'東京ヴェルディ',   away:'柏レイソル',   venue:'味の素スタジアム' },
+  { round:'第11節', rawDate:'2026-04-18', time:'14:00', home:'柏レイソル',       away:'鹿島アントラーズ', venue:'三協フロンテア柏スタジアム' },
+  { round:'第12節', rawDate:'2026-04-25', time:'14:00', home:'柏レイソル',       away:'浦和レッズ',   venue:'三協フロンテア柏スタジアム' },
+  { round:'第13節', rawDate:'2026-05-02', time:'14:00', home:'FC町田ゼルビア',   away:'柏レイソル',   venue:'町田GIONスタジアム' },
+  { round:'第14節', rawDate:'2026-05-06', time:'19:00', home:'柏レイソル',       away:'川崎フロンターレ', venue:'三協フロンテア柏スタジアム' },
+  { round:'第15節', rawDate:'2026-05-10', time:'14:00', home:'水戸ホーリーホック',away:'柏レイソル',  venue:'Ksスタジアム' },
+  { round:'第16節', rawDate:'2026-05-17', time:'14:00', home:'柏レイソル',       away:'FC東京',       venue:'三協フロンテア柏スタジアム' },
+  { round:'第17節', rawDate:'2026-05-23', time:'14:00', home:'横浜F・マリノス',  away:'柏レイソル',   venue:'日産スタジアム' },
+  { round:'第18節', rawDate:'2026-05-24', time:'14:00', home:'柏レイソル',       away:'ジェフ千葉',   venue:'三協フロンテア柏スタジアム' },
+];
+
 async function fetchMatches() {
   matchesLoading = true;
   matchesError = false;
   if (activeTab === 'matches') render();
   try {
-    // eventsseason で2026年全試合取得 → 柏レイソルのみ絞り込み
-    const res = await fetch(`${TSDB}/eventsseason.php?id=${J1_ID}&s=2026`);
-    const data = await res.json();
-    const all = data.events || [];
+    // 静的日程をベースに作成
+    const today = new Date();
+    const base = KASHIWA_SCHEDULE.map((s, i) => {
+      const dt = new Date(s.rawDate + 'T' + s.time + ':00+09:00');
+      const finished = dt < today;
+      return {
+        id: 'k' + i,
+        rawDate: s.rawDate,
+        date: (() => {
+          const d = new Date(s.rawDate + 'T00:00:00+09:00');
+          const days = ['日','月','火','水','木','金','土'];
+          return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日(${days[d.getDay()]})`;
+        })(),
+        time: s.time,
+        home: s.home,
+        away: s.away,
+        homeScore: null,
+        awayScore: null,
+        venue: s.venue,
+        status: finished ? 'finished' : 'upcoming',
+        competition: s.round + ' J1百年構想リーグ',
+      };
+    });
 
-    const reysol = all.filter(e =>
-      e.strHomeTeam?.includes('Kashiwa') || e.strAwayTeam?.includes('Kashiwa')
-    );
-    if (reysol.length === 0) {
-      // フォールバック: eventsnext + eventspast
-      const [nextRes, pastRes] = await Promise.all([
-        fetch(`${TSDB}/eventsnextleague.php?id=${J1_ID}`),
-        fetch(`${TSDB}/eventspastleague.php?id=${J1_ID}`),
+    // TheSportsDBでスコア補完を試みる
+    try {
+      const [nextRes, lastRes] = await Promise.all([
+        fetch(`${TSDB}/eventsnext.php?id=${KASHIWA_TSDB}`),
+        fetch(`${TSDB}/eventslast.php?id=${KASHIWA_TSDB}`),
       ]);
-      const [nextData, pastData] = await Promise.all([nextRes.json(), pastRes.json()]);
-      const fallback = [
-        ...(nextData.events || []),
-        ...(pastData.events || []),
-      ].filter(e => e.strHomeTeam?.includes('Kashiwa') || e.strAwayTeam?.includes('Kashiwa'));
-      if (fallback.length === 0) throw new Error('no reysol matches');
-      reysol.push(...fallback);
+      const [nextData, lastData] = await Promise.all([nextRes.json(), lastRes.json()]);
+      const apiEvents = [...(nextData.events||[]), ...(lastData.results||[])];
+
+      // 日付でマッチングしてスコアを上書き
+      for (const e of apiEvents) {
+        const match = base.find(m => m.rawDate === e.dateEvent);
+        if (match && e.intHomeScore != null && e.intHomeScore !== '') {
+          match.homeScore = parseInt(e.intHomeScore);
+          match.awayScore = parseInt(e.intAwayScore);
+          match.status = 'finished';
+        }
+      }
+    } catch(err) {
+      console.warn('[Reysol] score overlay failed:', err.message);
     }
 
-    matches = reysol
-      .map(tsdbEventToMatch)
-      .sort((a, b) => {
-        // 終了済みは日付降順（新しい順）、今後は日付昇順（近い順）
-        const aDate = new Date(a.rawDate || a.date);
-        const bDate = new Date(b.rawDate || b.date);
-        if (a.status === 'finished' && b.status === 'finished') return bDate - aDate;
-        if (a.status !== 'finished' && b.status !== 'finished') return aDate - bDate;
-        if (a.status === 'finished') return -1;
-        return 1;
-      });
+    matches = base.sort((a, b) => {
+      const aDate = new Date(a.rawDate);
+      const bDate = new Date(b.rawDate);
+      if (a.status === 'finished' && b.status === 'finished') return bDate - aDate;
+      if (a.status !== 'finished' && b.status !== 'finished') return aDate - bDate;
+      if (a.status === 'finished') return -1;
+      return 1;
+    });
   } catch(e) {
     console.error('[Reysol] fetchMatches error:', e);
     matchesError = true;
