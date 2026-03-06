@@ -938,6 +938,7 @@ if ('serviceWorker' in navigator) {
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 import { getDatabase, ref, push, onValue, serverTimestamp, query, orderByChild, limitToLast, update, increment, remove } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+import { getStorage, ref as sref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBjCmDVUnUX80d_7KudYAHX9FaJun3l7ko",
@@ -952,6 +953,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
+const storage = getStorage(app);
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 let currentUser = null;
@@ -1023,6 +1025,8 @@ function nickColor(nick) {
 
 let replyingTo = null;
 let openReplies = {};
+let selectedPhoto = null; // { file, previewUrl }
+let photoUploading = false;
 let lastReadReplyTs = parseInt(localStorage.getItem('reysol_last_read_reply_ts') || '0');
 let unreadReplyCount = 0;
 
@@ -1089,6 +1093,7 @@ function renderPostCard(p) {
         </div>
       </div>
       <div style="color:#ddd;font-size:14px;line-height:1.6;word-break:break-word;margin-bottom:10px">${escapeHtml(p.text||'')}</div>
+      ${p.imageUrl ? `<img src="${p.imageUrl}" alt="投稿画像" onclick="window.openImg('${p.imageUrl}')" style="width:100%;max-height:280px;object-fit:cover;border-radius:10px;margin-bottom:10px;cursor:pointer;">` : ''}
       <div style="display:flex;align-items:center;gap:10px">
         <button onclick="window.likePost('${p.id}')" style="background:none;border:1px solid #2a2a2a;border-radius:20px;padding:4px 12px;color:${liked?'#ff6b6b':'#555'};font-size:12px;cursor:pointer;">
           ❤️ ${p.likes||0}
@@ -1145,11 +1150,23 @@ function renderCommunityDOM() {
     <div style="background:var(--card);border-radius:14px;padding:13px;margin-bottom:14px;border:1px solid color-mix(in srgb,var(--y) 25%,transparent)">
       ${replyBanner}
       <textarea id="post-input" placeholder="${replyingTo ? '返信を入力...' : 'レイソルについて語ろう！'}" maxlength="200"
-        style="width:100%;background:#111;border:1px solid #333;border-radius:10px;padding:10px 12px;color:#fff;font-size:14px;font-family:inherit;resize:none;height:70px;outline:none;margin-bottom:10px;"></textarea>
+        style="width:100%;background:#111;border:1px solid #333;border-radius:10px;padding:10px 12px;color:#fff;font-size:14px;font-family:inherit;resize:none;height:70px;outline:none;margin-bottom:8px;"></textarea>
+      ${selectedPhoto ? `
+        <div style="position:relative;display:inline-block;margin-bottom:8px">
+          <img src="${selectedPhoto.previewUrl}" style="height:80px;border-radius:8px;object-fit:cover;max-width:100%">
+          <button onclick="window.clearPhoto()" style="position:absolute;top:-6px;right:-6px;background:#333;border:none;border-radius:50%;width:20px;height:20px;color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">×</button>
+        </div>` : ''}
       <div style="display:flex;align-items:center;justify-content:space-between">
-        <span id="char-count" style="color:#555;font-size:11px">0 / 200</span>
-        <button onclick="window.submitPost()" style="background:var(--y);color:#1a1a1a;font-weight:900;font-size:13px;padding:8px 20px;border-radius:10px;border:none;cursor:pointer;font-family:inherit">
-          ${replyingTo ? '返信する' : '投稿する'}
+        <div style="display:flex;align-items:center;gap:8px">
+          <span id="char-count" style="color:#555;font-size:11px">0 / 200</span>
+          ${!replyingTo ? `
+            <label style="cursor:pointer;color:#555;font-size:20px;line-height:1" title="写真を追加">
+              📷
+              <input type="file" accept="image/*" onchange="window.onPhotoSelect(event)" style="display:none">
+            </label>` : ''}
+        </div>
+        <button onclick="window.submitPost()" ${photoUploading?'disabled':''} style="background:var(--y);color:#1a1a1a;font-weight:900;font-size:13px;padding:8px 20px;border-radius:10px;border:none;cursor:pointer;font-family:inherit;opacity:${photoUploading?'0.6':'1'}">
+          ${photoUploading ? '送信中...' : replyingTo ? '返信する' : '投稿する'}
         </button>
       </div>
     </div>
@@ -1205,16 +1222,54 @@ window.toggleReplies = function(postId) {
   renderCommunityDOM();
 };
 
+window.onPhotoSelect = function(e) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { alert('5MB以下の画像を選択してください'); return; }
+  const previewUrl = URL.createObjectURL(file);
+  selectedPhoto = { file, previewUrl };
+  renderCommunityDOM();
+};
+
+window.clearPhoto = function() {
+  if (selectedPhoto?.previewUrl) URL.revokeObjectURL(selectedPhoto.previewUrl);
+  selectedPhoto = null;
+  renderCommunityDOM();
+};
+
+// 画像を全画面表示
+window.openImg = function(url) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:pointer';
+  overlay.innerHTML = `<img src="${url}" style="max-width:96vw;max-height:90vh;object-fit:contain;border-radius:8px">`;
+  overlay.onclick = () => overlay.remove();
+  document.body.appendChild(overlay);
+};
+
 window.submitPost = async function() {
   if (!currentUser) return alert('認証中です。しばらくお待ちください。');
   const ta = document.getElementById('post-input');
   const text = ta?.value?.trim();
-  if (!text) return;
-  if (text.length > 200) return;
+  if (!text && !selectedPhoto) return;
+  if (text && text.length > 200) return;
   try {
+    photoUploading = true;
+    renderCommunityDOM();
+
+    let imageUrl = null;
+    if (selectedPhoto) {
+      const ext = selectedPhoto.file.name.split('.').pop() || 'jpg';
+      const path = `posts/${currentUser.uid}_${Date.now()}.${ext}`;
+      const storageRef = sref(storage, path);
+      await uploadBytes(storageRef, selectedPhoto.file, { contentType: selectedPhoto.file.type });
+      imageUrl = await getDownloadURL(storageRef);
+      URL.revokeObjectURL(selectedPhoto.previewUrl);
+      selectedPhoto = null;
+    }
+
     if (replyingTo) {
       await push(ref(db, `posts/${replyingTo.id}/replies`), {
-        text, nick: nickname,
+        text: text || '', nick: nickname,
         uid: currentUser.uid,
         ts: serverTimestamp(),
         ...(replyingTo.replyId ? { replyToNick: replyingTo.nick } : {}),
@@ -1223,16 +1278,22 @@ window.submitPost = async function() {
       replyingTo = null;
     } else {
       await push(ref(db, 'posts'), {
-        text, nick: nickname,
+        text: text || '', nick: nickname,
         uid: currentUser.uid,
         ts: serverTimestamp(),
-        likes: 0, likedBy: {}
+        likes: 0, likedBy: {},
+        ...(imageUrl ? { imageUrl } : {}),
       });
     }
     if (ta) ta.value = '';
     const cc = document.getElementById('char-count');
     if (cc) cc.textContent = '0 / 200';
-  } catch(e) { alert('投稿に失敗しました。'); }
+  } catch(e) {
+    console.error(e);
+    alert('投稿に失敗しました。');
+  }
+  photoUploading = false;
+  renderCommunityDOM();
 };
 
 window.likePost = async function(postId) {
