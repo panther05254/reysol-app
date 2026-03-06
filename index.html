@@ -790,40 +790,60 @@ function renderCommunityDOM() {
       <div style="color:#666;font-size:13px;margin-bottom:28px">ファン同士で交流できる掲示板です。<br>まずニックネームを設定してください。</div>
       <input id="nick-input" type="text" maxlength="12" placeholder="ニックネーム（12文字以内）"
         style="width:100%;background:#1e1e1e;border:1px solid #444;border-radius:10px;padding:12px 14px;color:#fff;font-size:15px;font-family:inherit;margin-bottom:12px;outline:none;">
-      <button onclick="communitySetNick()" style="width:100%;background:var(--y);color:#1a1a1a;font-weight:900;font-size:15px;padding:13px;border-radius:12px;border:none;cursor:pointer;font-family:inherit">トークに参加する ⚽</button>
+      <button id="nick-btn" style="width:100%;background:var(--y);color:#1a1a1a;font-weight:900;font-size:15px;padding:13px;border-radius:12px;border:none;cursor:pointer;font-family:inherit">トークに参加する ⚽</button>
     </div>`;
+    const nb = document.getElementById('nick-btn');
+    if (nb) nb.addEventListener('click', communitySetNick);
     return;
   }
 
-  const replyBanner = replyingTo ? `
-    <div style="display:flex;align-items:center;justify-content:space-between;background:#1e1e1e;border:1px solid color-mix(in srgb,var(--y) 30%,transparent);border-radius:10px;padding:8px 12px;margin-bottom:8px">
-      <span style="color:var(--y);font-size:12px">↩ <b>${_esc(replyingTo.nick)}</b> さんへ返信中</span>
-      <button onclick="communityCancel()" style="background:none;border:none;color:#888;font-size:18px;cursor:pointer;">×</button>
-    </div>` : '';
+  // シェルがなければ初回のみ作成
+  if (!document.getElementById('post-shell')) {
+    const replyBanner = replyingTo ? `
+      <div id="reply-banner" style="display:flex;align-items:center;justify-content:space-between;background:#1e1e1e;border:1px solid color-mix(in srgb,var(--y) 30%,transparent);border-radius:10px;padding:8px 12px;margin-bottom:8px">
+        <span style="color:var(--y);font-size:12px">↩ <b>${_esc(replyingTo.nick)}</b> さんへ返信中</span>
+        <button id="cancel-btn" style="background:none;border:none;color:#888;font-size:18px;cursor:pointer;">×</button>
+      </div>` : '';
 
-  root.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <span style="color:var(--y);font-weight:900;font-size:15px">💬 トーク <span style="color:#555;font-size:11px;font-weight:400">${communityPosts.length}件</span></span>
-      <button onclick="communityChangeNick()" style="background:none;border:1px solid #333;border-radius:8px;padding:4px 10px;color:#888;font-size:11px;cursor:pointer;font-family:inherit">👤 ${_esc(nickname)}</button>
-    </div>
-    <div style="background:var(--card);border-radius:14px;padding:13px;margin-bottom:14px;border:1px solid color-mix(in srgb,var(--y) 25%,transparent)">
-      ${replyBanner}
-      <textarea id="post-input" placeholder="${replyingTo?'返信を入力...':'レイソルについて語ろう！'}" maxlength="200"
-        style="width:100%;background:#111;border:1px solid #333;border-radius:10px;padding:10px 12px;color:#fff;font-size:14px;font-family:inherit;resize:none;height:70px;outline:none;margin-bottom:10px;"></textarea>
-      <div style="display:flex;align-items:center;justify-content:space-between">
-        <span id="char-count" style="color:#555;font-size:11px">0 / 200</span>
-        <button id="submit-btn" style="background:var(--y);color:#1a1a1a;font-weight:900;font-size:13px;padding:8px 20px;border-radius:10px;border:none;cursor:pointer;font-family:inherit">${replyingTo?'返信する':'投稿する'}</button>
+    root.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <span id="post-count" style="color:var(--y);font-weight:900;font-size:15px">💬 トーク <span style="color:#555;font-size:11px;font-weight:400">${communityPosts.length}件</span></span>
+        <button id="change-nick-btn" style="background:none;border:1px solid #333;border-radius:8px;padding:4px 10px;color:#888;font-size:11px;cursor:pointer;font-family:inherit">👤 ${_esc(nickname)}</button>
       </div>
-    </div>
-    ${communityPosts.length === 0
-      ? '<div style="text-align:center;padding:32px;color:#444;font-size:13px">まだ投稿がありません。最初の投稿をしてみよう！</div>'
-      : communityPosts.map(renderPostCard).join('')}`;
+      <div id="post-shell" style="background:var(--card);border-radius:14px;padding:13px;margin-bottom:14px;border:1px solid color-mix(in srgb,var(--y) 25%,transparent)">
+        ${replyBanner}
+        <textarea id="post-input" placeholder="${replyingTo?'返信を入力...':'レイソルについて語ろう！'}" maxlength="200"
+          style="width:100%;background:#111;border:1px solid #333;border-radius:10px;padding:10px 12px;color:#fff;font-size:14px;font-family:inherit;resize:none;height:70px;outline:none;margin-bottom:10px;"></textarea>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span id="char-count" style="color:#555;font-size:11px">0 / 200</span>
+          <button id="submit-btn" style="background:var(--y);color:#1a1a1a;font-weight:900;font-size:13px;padding:8px 20px;border-radius:10px;border:none;cursor:pointer;font-family:inherit">${replyingTo?'返信する':'投稿する'}</button>
+        </div>
+      </div>
+      <div id="posts-list"></div>`;
 
-  const ta = document.getElementById('post-input');
-  const cc = document.getElementById('char-count');
-  const btn = document.getElementById('submit-btn');
-  if (ta && cc) ta.oninput = () => { cc.textContent = ta.value.length + ' / 200'; };
-  if (btn) btn.addEventListener('click', communitySubmit);
+    // イベントを一度だけバインド
+    const ta  = document.getElementById('post-input');
+    const cc  = document.getElementById('char-count');
+    const btn = document.getElementById('submit-btn');
+    const cnb = document.getElementById('change-nick-btn');
+    const cab = document.getElementById('cancel-btn');
+    if (ta && cc) ta.addEventListener('input', () => { cc.textContent = ta.value.length + ' / 200'; });
+    if (btn) btn.addEventListener('click', communitySubmit);
+    if (cnb) cnb.addEventListener('click', communityChangeNick);
+    if (cab) cab.addEventListener('click', communityCancel);
+  }
+
+  // 件数だけ更新
+  const pc = document.getElementById('post-count');
+  if (pc) pc.innerHTML = `💬 トーク <span style="color:#555;font-size:11px;font-weight:400">${communityPosts.length}件</span>`;
+
+  // 投稿リストだけ更新
+  const list = document.getElementById('posts-list');
+  if (list) {
+    list.innerHTML = communityPosts.length === 0
+      ? '<div style="text-align:center;padding:32px;color:#444;font-size:13px">まだ投稿がありません。最初の投稿をしてみよう！</div>'
+      : communityPosts.map(renderPostCard).join('');
+  }
 }
 
 // ── COMMUNITY TAB ENTRY ───────────────────────────────────────────────────────
