@@ -448,6 +448,7 @@ let unreadCount = 0;
 let lastReadTs = parseInt(localStorage.getItem('reysol_last_read_ts') || '0');
 window.unreadCount = unreadCount;
 window.lastReadTs = lastReadTs;
+window.lastReadReplyTs = parseInt(localStorage.getItem('reysol_last_read_reply_ts') || '0');
 
 // ── RSS FETCH ─────────────────────────────────────────────────────────────────
 const RSS_SOURCES = [
@@ -554,13 +555,15 @@ const navItems = [
 
 function renderNav() {
   unreadCount = window.unreadCount || 0;
+  const replyUnread = window.unreadReplyCount || 0;
+  const totalUnread = unreadCount + replyUnread;
   window.renderNav = renderNav;
   document.getElementById('tabbar').innerHTML = tabs.map(t =>
-    `<button class="tab-btn ${activeTab===t.key?'active':''}" onclick="setTab('${t.key}')">${t.icon} ${t.label}${t.key==='community'&&unreadCount>0?` <span style="background:#ff4444;color:#fff;font-size:9px;font-weight:900;padding:1px 5px;border-radius:10px;vertical-align:middle">${unreadCount>99?'99+':unreadCount}</span>`:''}</button>`
+    `<button class="tab-btn ${activeTab===t.key?'active':''}" onclick="setTab('${t.key}')">${t.icon} ${t.label}${t.key==='community'&&totalUnread>0?` <span style="background:#ff4444;color:#fff;font-size:9px;font-weight:900;padding:1px 5px;border-radius:10px;vertical-align:middle">${totalUnread>99?'99+':totalUnread}</span>`:''}</button>`
   ).join('');
   document.getElementById('bottom-nav').innerHTML = navItems.map(it => {
-    const badge = it.key === 'community' && unreadCount > 0
-      ? `<span style="position:absolute;top:2px;right:50%;transform:translateX(calc(50% + 10px));background:#ff4444;color:#fff;font-size:9px;font-weight:900;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 4px;line-height:1">${unreadCount > 99 ? '99+' : unreadCount}</span>`
+    const badge = it.key === 'community' && totalUnread > 0
+      ? `<span style="position:absolute;top:2px;right:50%;transform:translateX(calc(50% + 10px));background:#ff4444;color:#fff;font-size:9px;font-weight:900;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 4px;line-height:1">${totalUnread > 99 ? '99+' : totalUnread}</span>`
       : '';
     return `<button class="nav-item ${activeTab===it.key?'active':''}" onclick="setTab('${it.key}')" style="position:relative">
       <span class="nav-icon">${it.icon}</span>
@@ -795,6 +798,8 @@ function setTab(key) {
     localStorage.setItem('reysol_last_read_ts', lastReadTs);
     unreadCount = 0;
     window.unreadCount = 0;
+    window.unreadReplyCount = 0;
+    // 返信既読は各返信を開いた時点で記録（ここでは投稿未読のみリセット）
   }
   render();
   document.getElementById('content').scrollTop = 0;
@@ -864,6 +869,7 @@ let unsubPosts = null;
 signInAnonymously(auth);
 onAuthStateChanged(auth, user => {
   currentUser = user;
+  window.currentUserUid = user?.uid || null;
   if (user && window.activeTab === 'community') renderCommunityDOM();
 });
 
@@ -878,7 +884,21 @@ function subscribePosts() {
     });
     // トークタブ非表示中のみ未読カウント更新
     if (window.activeTab !== 'community') {
+      // 新着投稿カウント
       window.unreadCount = communityPosts.filter(p => (p.ts || 0) > (window.lastReadTs || 0)).length;
+      // 自分の投稿への未読返信カウント（自分以外からの返信）
+      let replyUnread = 0;
+      const uid = window.currentUserUid;
+      if (uid) {
+        for (const p of communityPosts) {
+          if (p.uid !== uid) continue;
+          if (!p.replies) continue;
+          replyUnread += Object.values(p.replies).filter(
+            r => (r.ts||0) > (window.lastReadReplyTs||0) && r.uid !== uid
+          ).length;
+        }
+      }
+      window.unreadReplyCount = replyUnread;
       if (window.renderNav) window.renderNav();
     }
     if (window.activeTab === 'community') renderCommunityDOM();
@@ -909,6 +929,8 @@ function nickColor(nick) {
 
 let replyingTo = null;
 let openReplies = {};
+let lastReadReplyTs = parseInt(localStorage.getItem('reysol_last_read_reply_ts') || '0');
+let unreadReplyCount = 0;
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
 window.renderCommunity = function() {
@@ -921,27 +943,47 @@ function renderPostCard(p) {
   const isOwn = p.uid === currentUser?.uid;
   const replyCount = p.replies ? Object.keys(p.replies).length : 0;
   const repliesOpen = openReplies[p.id];
+
+  // 自分の投稿への未読返信数
+  const unreadReplies = isOwn && p.replies
+    ? Object.values(p.replies).filter(r => (r.ts||0) > lastReadReplyTs && r.uid !== currentUser?.uid).length
+    : 0;
+
   const repliesHtml = repliesOpen && p.replies
     ? Object.entries(p.replies).sort((a,b) => (a[1].ts||0)-(b[1].ts||0)).map(([rid, r]) => {
         const isOwnReply = r.uid === currentUser?.uid;
+        const isNew = isOwn && (r.ts||0) > lastReadReplyTs && r.uid !== currentUser?.uid;
+        // 誰への返信かを表示
+        const replyToLabel = r.replyToNick
+          ? `<span style="color:#666;font-size:11px;margin-bottom:4px;display:block">↩ ${escapeHtml(r.replyToNick)} さんへ</span>`
+          : '';
         return `
-        <div style="display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid #222">
+        <div style="display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid #222;${isNew?'background:color-mix(in srgb,var(--y) 6%,transparent);margin-left:-4px;padding-left:4px;border-radius:8px':''}">
           <div style="width:24px;height:24px;background:${nickColor(r.nick).bg};border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:11px;flex-shrink:0">${escapeHtml(r.nick||'?')[0]}</div>
           <div style="flex:1">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-              <span style="color:${nickColor(r.nick).text};font-weight:700;font-size:12px">${escapeHtml(r.nick||'匿名')}</span>
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="color:${nickColor(r.nick).text};font-weight:700;font-size:12px">${escapeHtml(r.nick||'匿名')}</span>
+                ${isNew ? `<span style="background:#ff4444;color:#fff;font-size:9px;font-weight:900;padding:1px 5px;border-radius:6px">NEW</span>` : ''}
+              </div>
               <div style="display:flex;align-items:center;gap:6px">
                 <span style="color:#444;font-size:10px">${timeAgo(r.ts)}</span>
-                ${isOwnReply ? `<button onclick="window.deleteReply('${p.id}','${rid}')" style="background:none;border:none;color:#555;font-size:13px;cursor:pointer;padding:0;line-height:1;" title="削除">🗑️</button>` : ''}
+                ${isOwnReply ? `<button onclick="window.deleteReply('${p.id}','${rid}')" style="background:none;border:none;color:#555;font-size:13px;cursor:pointer;padding:0;line-height:1;">🗑️</button>` : ''}
               </div>
             </div>
+            ${replyToLabel}
             <div style="color:#ccc;font-size:13px;line-height:1.5;word-break:break-word">${escapeHtml(r.text||'')}</div>
+            <button onclick="window.startReply('${p.id}','${escapeHtml(r.nick||'匿名')}','${rid}')" style="background:none;border:none;color:#555;font-size:11px;cursor:pointer;padding:4px 0 0;font-family:inherit">↩ 返信</button>
           </div>
         </div>`}).join('')
     : '';
 
+  const replyBadge = unreadReplies > 0
+    ? `<span style="background:#ff4444;color:#fff;font-size:9px;font-weight:900;padding:1px 5px;border-radius:6px;margin-left:4px">${unreadReplies}</span>`
+    : '';
+
   return `
-    <div style="background:var(--card);border-radius:14px;padding:13px 14px;margin-bottom:10px;border:1px solid var(--border)">
+    <div style="background:var(--card);border-radius:14px;padding:13px 14px;margin-bottom:10px;border:1px solid ${unreadReplies>0?'#ff444466':' var(--border)'}">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <div style="display:flex;align-items:center;gap:8px">
           <div style="width:30px;height:30px;background:${nickColor(p.nick).bg};border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:13px;flex-shrink:0">${escapeHtml(p.nick||'?')[0]}</div>
@@ -949,7 +991,7 @@ function renderPostCard(p) {
         </div>
         <div style="display:flex;align-items:center;gap:8px">
           <span style="color:#444;font-size:11px">${timeAgo(p.ts)}</span>
-          ${isOwn ? `<button onclick="window.deletePost('${p.id}')" style="background:none;border:none;color:#555;font-size:15px;cursor:pointer;padding:0;line-height:1;" title="削除">🗑️</button>` : ''}
+          ${isOwn ? `<button onclick="window.deletePost('${p.id}')" style="background:none;border:none;color:#555;font-size:15px;cursor:pointer;padding:0;line-height:1;">🗑️</button>` : ''}
         </div>
       </div>
       <div style="color:#ddd;font-size:14px;line-height:1.6;word-break:break-word;margin-bottom:10px">${escapeHtml(p.text||'')}</div>
@@ -957,8 +999,8 @@ function renderPostCard(p) {
         <button onclick="window.likePost('${p.id}')" style="background:none;border:1px solid #2a2a2a;border-radius:20px;padding:4px 12px;color:${liked?'#ff6b6b':'#555'};font-size:12px;cursor:pointer;">
           ❤️ ${p.likes||0}
         </button>
-        <button onclick="window.toggleReplies('${p.id}')" style="background:none;border:1px solid #2a2a2a;border-radius:20px;padding:4px 12px;color:#555;font-size:12px;cursor:pointer;">
-          💬 ${replyCount}件の返信${replyCount>0?(repliesOpen?' ▲':' ▼'):''}
+        <button onclick="window.toggleReplies('${p.id}')" style="background:none;border:1px solid #2a2a2a;border-radius:20px;padding:4px 12px;color:#555;font-size:12px;cursor:pointer;display:flex;align-items:center">
+          💬 ${replyCount}件${replyCount>0?(repliesOpen?' ▲':' ▼'):''}${replyBadge}
         </button>
         <button onclick="window.startReply('${p.id}','${escapeHtml(p.nick||'匿名')}')" style="background:none;border:1px solid #2a2a2a;border-radius:20px;padding:4px 12px;color:#888;font-size:12px;cursor:pointer;">
           ↩ 返信
@@ -1044,8 +1086,8 @@ window.changeNickname = function() {
   }
 };
 
-window.startReply = function(postId, nick) {
-  replyingTo = { id: postId, nick };
+window.startReply = function(postId, nick, replyId) {
+  replyingTo = { id: postId, nick, replyId: replyId || null };
   openReplies[postId] = true;
   renderCommunityDOM();
   setTimeout(() => document.getElementById('post-input')?.focus(), 80);
@@ -1058,6 +1100,14 @@ window.cancelReply = function() {
 
 window.toggleReplies = function(postId) {
   openReplies[postId] = !openReplies[postId];
+  // 返信を開いたら既読に
+  if (openReplies[postId]) {
+    lastReadReplyTs = Date.now();
+    window.lastReadReplyTs = lastReadReplyTs;
+    localStorage.setItem('reysol_last_read_reply_ts', lastReadReplyTs);
+    window.unreadReplyCount = 0;
+    if (window.renderNav) window.renderNav();
+  }
   renderCommunityDOM();
 };
 
@@ -1073,6 +1123,7 @@ window.submitPost = async function() {
         text, nick: nickname,
         uid: currentUser.uid,
         ts: serverTimestamp(),
+        ...(replyingTo.replyId ? { replyToNick: replyingTo.nick } : {}),
       });
       openReplies[replyingTo.id] = true;
       replyingTo = null;
