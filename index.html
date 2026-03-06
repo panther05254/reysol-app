@@ -370,6 +370,10 @@ let bbsPage = 1;
 let rssNews = [];
 let rssLoading = false;
 let rssError = false;
+let unreadCount = 0;
+let lastReadTs = parseInt(localStorage.getItem('reysol_last_read_ts') || '0');
+window.unreadCount = unreadCount;
+window.lastReadTs = lastReadTs;
 
 // ── RSS FETCH ─────────────────────────────────────────────────────────────────
 const RSS_SOURCES = [
@@ -475,15 +479,21 @@ const navItems = [
 ];
 
 function renderNav() {
+  unreadCount = window.unreadCount || 0;
+  window.renderNav = renderNav;
   document.getElementById('tabbar').innerHTML = tabs.map(t =>
-    `<button class="tab-btn ${activeTab===t.key?'active':''}" onclick="setTab('${t.key}')">${t.icon} ${t.label}</button>`
+    `<button class="tab-btn ${activeTab===t.key?'active':''}" onclick="setTab('${t.key}')">${t.icon} ${t.label}${t.key==='community'&&unreadCount>0?` <span style="background:#ff4444;color:#fff;font-size:9px;font-weight:900;padding:1px 5px;border-radius:10px;vertical-align:middle">${unreadCount>99?'99+':unreadCount}</span>`:''}</button>`
   ).join('');
-  document.getElementById('bottom-nav').innerHTML = navItems.map(it =>
-    `<button class="nav-item ${activeTab===it.key?'active':''}" onclick="setTab('${it.key}')">
+  document.getElementById('bottom-nav').innerHTML = navItems.map(it => {
+    const badge = it.key === 'community' && unreadCount > 0
+      ? `<span style="position:absolute;top:2px;right:50%;transform:translateX(calc(50% + 10px));background:#ff4444;color:#fff;font-size:9px;font-weight:900;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 4px;line-height:1">${unreadCount > 99 ? '99+' : unreadCount}</span>`
+      : '';
+    return `<button class="nav-item ${activeTab===it.key?'active':''}" onclick="setTab('${it.key}')" style="position:relative">
       <span class="nav-icon">${it.icon}</span>
+      ${badge}
       <span class="nav-label">${it.label}</span>
-    </button>`
-  ).join('');
+    </button>`;
+  }).join('');
 }
 
 // ── TABS ──────────────────────────────────────────────────────────────────────
@@ -705,6 +715,13 @@ function render() {
 function setTab(key) {
   activeTab = key;
   window.activeTab = key;
+  if (key === 'community') {
+    lastReadTs = Date.now();
+    window.lastReadTs = lastReadTs;
+    localStorage.setItem('reysol_last_read_ts', lastReadTs);
+    unreadCount = 0;
+    window.unreadCount = 0;
+  }
   render();
   document.getElementById('content').scrollTop = 0;
   if (key === 'community') setTimeout(() => { if (window.renderCommunityDOM) window.renderCommunityDOM(); }, 50);
@@ -785,6 +802,11 @@ function subscribePosts() {
     snap.forEach(child => {
       communityPosts.unshift({ id: child.key, ...child.val() });
     });
+    // トークタブ非表示中のみ未読カウント更新
+    if (window.activeTab !== 'community') {
+      window.unreadCount = communityPosts.filter(p => (p.ts || 0) > (window.lastReadTs || 0)).length;
+      if (window.renderNav) window.renderNav();
+    }
     if (window.activeTab === 'community') renderCommunityDOM();
   });
 }
