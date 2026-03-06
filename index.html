@@ -58,121 +58,176 @@
   .nav-label { font-size: 10px; color: #555; }
   .nav-item.active .nav-label { color: var(--y); font-weight: 700; }
 
-[534 lines total]",
-        "uuid": "acd9dec6-c562-4fcc-84b8-13f7cc4f3eec"
-      }
-    ],
-    "is_error": false,
-    "structured_content": null,
-    "meta": null,
-    "message": null,
-    "integration_name": null,
-    "integration_icon_url": null,
-    "icon_name": "file",
-    "display_content": {
-      "type": "json_block",
-      "json_block": "{"language": "html", "code": "<!DOCTYPE html>\
-<html lang=\"ja\">\
-<head>\
-<meta charset=\"UTF-8\">\
-<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no\">\
-<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">\
-<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black-translucent\">\
-<meta name=\"apple-mobile-web-app-title\" content=\"レイソル\">\
-<meta name=\"theme-color\" content=\"#FFD700\">\
-<link rel=\"manifest\" href=\"manifest.json\">\
-<link rel=\"apple-touch-icon\" href=\"icon-192.png\">\
-<title>柏レイソル ファンアプリ</title>\
-<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\
-<link href=\"https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&family=Bebas+Neue&display=swap\" rel=\"stylesheet\">\
-<style>\
-  :root { --y: #FFD700; --bg: #0f0f0f; --card: #1a1a1a; --card2: #111; --border: #252525; }\
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }\
-  html, body { height: 100%; background: var(--bg); color: #ddd; font-family: 'Noto Sans JP', sans-serif; overflow: hidden; }\
-\
-  /* LAYOUT */\
-  #app { display: flex; flex-direction: column; height: 100dvh; max-width: 430px; margin: 0 auto; position: relative; }\
-\
-  /* HEADER */\
-  .header { background: var(--card); border-bottom: 3px solid var(--y); padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }\
-  .header-left { display: flex; align-items: center; gap: 10px; }\
-  .logo { width: 42px; height: 42px; background: var(--y); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-family: 'Bebas Neue'; font-size: 24px; color: #1a1a1a; font-weight: 900; }\
-  .header-title { font-family: 'Bebas Neue'; font-size: 20px; color: var(--y); letter-spacing: 2px; }\
-  .header-sub { font-size: 10px; color: #888; letter-spacing: 1px; }\
-  .live-badge { background: #ff4444; border-radius: 4px; padding: 2px 7px; font-size: 10px; font-weight: 700; color: #fff; }\
-\
-  /* BANNER */\
-  .banner { margin: 10px 12px; background: var(--card); border-radius: 14px; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--y) 30%, transparent); flex-shrink: 0; }\
-  .banner-label { color: var(--y); font-size: 10px; font-weight: 700; letter-spacing: 1px; margin-bottom: 8px; }\
-  .banner-row { display: flex; align-items: center; justify-content: space-between; }\
-  .banner-team { font-size: 13px; font-weight: 700; }\
-  .banner-team-sub { font-size: 11px; color: #aaa; margin-bottom: 3px; }\
-  .banner-vs { font-family: 'Bebas Neue'; font-size: 28px; color: #fff; letter-spacing: 2px; text-align: center; }\
-  .banner-date { font-size: 10px; color: #888; text-align: center; }\
-  .banner-btns { display: flex; gap: 6px; margin-top: 10px; }\
-  .banner-btn { flex: 1; border-radius: 8px; padding: 7px; text-align: center; font-size: 11px; font-weight: 700; cursor: pointer; text-decoration: none; }\
-  .banner-btn-y { background: var(--y); color: #1a1a1a; }\
-  .banner-btn-ghost { border: 1px solid #ffffff22; color: #fff; }\
-\
-  /* TAB BAR */\
-  .tabbar { display: flex; gap: 6px; padding: 6px 16px; overflow-x: auto; flex-shrink: 0; scrollbar-width: none; }\
-  .tabbar::-webkit-scrollbar { display: none; }\
-  .tab-btn { background: #1e1e1e; border: none; border-radius: 20px; padding: 7px 14px; font-size: 12px; font-weight: 700; color: #aaa; cursor: pointer; white-space: nowrap; font-family: 'Noto Sans JP'; }\
-  .tab-btn.active { background: var(--y); color: #1a1a1a; }\
-\
-  /* CONTENT */\
-  .content { flex: 1; overflow-y: auto; padding: 14px 14px 80px; overscroll-behavior: contain; }\
-  .content.webview-mode { padding: 0; overflow: hidden; }\
-\
-  /* BOTTOM NAV */\
-  .bottom-nav { position: absolute; bottom: 0; left: 0; right: 0; background: #111; border-top: 2px solid color-mix(in srgb, var(--y) 20%, transparent); display: flex; padding: 8px 0 env(safe-area-inset-bottom, 10px); }\
-  .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; background: none; border: none; font-family: 'Noto Sans JP'; }\
-  .nav-icon { font-size: 20px; }\
-  .nav-label { font-size: 10px; color: #555; }\
-  .nav-item.active .nav-label { color: var(--y); font-weight: 700; }\
-\
-", "filename": "/mnt/user-data/outputs/reysol-pwa/index.html"}"
-    }
-  },
-  {
-    "start_timestamp": "2026-03-05T13:44:05.991031Z",
-    "stop_timestamp": "2026-03-05T13:44:06.785688Z",
-    "flags": null,
-    "type": "tool_use",
-    "id": "toolu_01Nx32YubL2RERpMhMwt1QfS",
-    "name": "view",
-    "input": {
-      "description": "Check tabs definition and bottom nav items",
-      "path": "/mnt/user-data/outputs/reysol-pwa/index.html",
-      "view_range": [
-        230,
-        270
-      ]
-    },
-    "message": "Check tabs definition and bottom nav items",
-    "integration_name": null,
-    "integration_icon_url": null,
-    "icon_name": "file",
-    "context": null,
-    "display_content": {
-      "type": "text",
-      "text": "Check tabs definition and bottom nav items"
-    },
-    "approval_options": null,
-    "approval_key": null,
-    "is_mcp_app": null
-  },
-  {
-    "start_timestamp": null,
-    "stop_timestamp": null,
-    "flags": null,
-    "type": "tool_result",
-    "tool_use_id": "toolu_01Nx32YubL2RERpMhMwt1QfS",
-    "name": "view",
-    "content": [
-      {
-        "type": "text",
-        "text": "   230	          || text.includes('柏') || text.includes('reysol') || text.includes('レイソル');
+  /* CARDS */
+  .card { background: var(--card); border-radius: 14px; padding: 14px; margin-bottom: 10px; border: 1px solid var(--border); }
+  .card.hot { border-color: color-mix(in srgb, var(--y) 27%, transparent); }
+
+  /* NEWS */
+  .cat-chips { display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .cat-chips::-webkit-scrollbar { display: none; }
+  .chip { background: #1e1e1e; border: 1px solid #2a2a2a; border-radius: 20px; padding: 6px 12px; font-size: 11px; color: #777; cursor: pointer; white-space: nowrap; font-family: 'Noto Sans JP'; }
+  .chip.active { background: var(--y); border-color: var(--y); color: #1a1a1a; font-weight: 700; }
+  .news-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+  .cat-tag { border-radius: 20px; padding: 2px 8px; font-size: 10px; font-weight: 700; border: 1px solid; }
+  .news-source { font-size: 10px; color: #555; }
+  .news-date { font-size: 10px; color: #555; margin-left: auto; }
+  .hot-badge { background: #ff4444; color: #fff; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 4px; }
+  .news-title { color: #fff; font-weight: 700; font-size: 14px; line-height: 1.5; margin-bottom: 6px; }
+  .news-summary { color: #888; font-size: 12px; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .news-read { color: var(--y); font-weight: 700; font-size: 11px; margin-top: 8px; }
+  .card a { text-decoration: none; display: block; }
+
+  /* MATCHES */
+  .section-label { color: #666; font-size: 12px; font-weight: 500; margin-bottom: 10px; }
+  .match-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .comp-text { color: #666; font-size: 10px; }
+  .status-badge { background: #2a2a2a; border-radius: 10px; padding: 2px 8px; font-size: 10px; font-weight: 700; color: #666; }
+  .status-badge.upcoming { background: color-mix(in srgb, var(--y) 13%, transparent); color: var(--y); }
+  .match-row { display: flex; align-items: center; justify-content: space-between; }
+  .team-name { font-size: 13px; font-weight: 700; }
+  .team-name.reysol { color: var(--y); }
+  .score-box { text-align: center; padding: 0 16px; }
+  .score-text { font-family: 'Bebas Neue'; font-size: 28px; letter-spacing: 4px; }
+  .vs-text { font-family: 'Bebas Neue'; font-size: 22px; color: #555; letter-spacing: 2px; }
+  .venue-text { color: #555; font-size: 10px; margin-top: 6px; text-align: center; }
+  .scorers-box { margin-top: 10px; padding: 8px; background: var(--card2); border-radius: 8px; border-left: 3px solid var(--y); }
+  .scorers-title { color: var(--y); font-weight: 700; font-size: 10px; margin-bottom: 4px; }
+  .scorer-item { color: #ccc; font-size: 11px; }
+  .match-card { cursor: pointer; }
+  .match-card.win { border-color: color-mix(in srgb, var(--y) 27%, transparent); }
+
+  /* BBS WEBVIEW */
+  .webview-container { display: flex; flex-direction: column; height: 100%; }
+  .webview-header { display: flex; align-items: center; padding: 10px 16px; background: var(--card); border-bottom: 1px solid color-mix(in srgb, var(--y) 20%, transparent); gap: 8px; flex-shrink: 0; }
+  .webview-hint { background: var(--card2); padding: 5px; text-align: center; font-size: 10px; color: #444; border-bottom: 1px solid #222; flex-shrink: 0; }
+  .webview-hint.loading { background: color-mix(in srgb, var(--y) 13%, transparent); color: var(--y); font-weight: 700; }
+  .page-nav { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 8px; background: var(--card2); border-bottom: 1px solid #222; flex-shrink: 0; }
+  .page-btn { border-radius: 16px; padding: 5px 16px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid; font-family: 'Noto Sans JP'; }
+  .page-btn.active { background: color-mix(in srgb, var(--y) 13%, transparent); border-color: color-mix(in srgb, var(--y) 33%, transparent); color: var(--y); }
+  .page-btn.disabled { background: var(--card); border-color: #2a2a2a; color: #444; cursor: default; }
+  .page-num { color: #666; font-size: 12px; }
+  .bbs-iframe { flex: 1; border: none; width: 100%; background: var(--bg); }
+  .action-btn { border: 1px solid; border-radius: 8px; padding: 5px 10px; font-size: 10px; font-weight: 700; cursor: pointer; font-family: 'Noto Sans JP'; background: none; }
+  .reload-btn { border-color: color-mix(in srgb, var(--y) 40%, transparent); color: var(--y); background: color-mix(in srgb, var(--y) 9%, transparent); }
+  .reload-btn:disabled { border-color: #333; color: #444; background: var(--card2); cursor: default; }
+  .post-btn { border-color: color-mix(in srgb, var(--y) 27%, transparent); color: var(--y); background: color-mix(in srgb, var(--y) 7%, transparent); }
+
+  /* STANDINGS */
+  .standings-table { background: var(--card); border-radius: 14px; overflow: hidden; border: 1px solid var(--border); }
+  .standings-head { display: grid; grid-template-columns: 24px 1fr 28px 28px 28px 28px 30px 36px; gap: 4px; padding: 10px 12px; background: var(--card2); font-size: 10px; color: #666; font-weight: 700; border-bottom: 1px solid #2a2a2a; }
+  .standings-row { display: grid; grid-template-columns: 24px 1fr 28px 28px 28px 28px 30px 36px; gap: 4px; padding: 11px 12px; align-items: center; border-bottom: 1px solid #222; }
+  .standings-row:last-child { border-bottom: none; }
+  .standings-row.reysol { background: color-mix(in srgb, var(--y) 8%, transparent); }
+  .sc { font-size: 12px; text-align: center; color: #888; }
+  .sc.pos { color: #666; font-weight: 700; }
+  .sc.pos.top { color: var(--y); }
+  .sc.team { text-align: left; color: #ddd; font-size: 12px; }
+  .sc.team.reysol { color: var(--y); font-weight: 700; }
+  .sc.win { color: #4caf50; }
+  .sc.lose { color: #f44336; }
+  .sc.pts { font-weight: 700; color: #fff; }
+  .sc.pts.reysol { color: var(--y); }
+
+  /* ANIMATION */
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .fade-in { animation: fadeIn 0.2s ease both; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <div class="header-left">
+      <img src="data:image/png;base64,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" style="width:42px;height:42px;border-radius:10px;object-fit:cover;" alt="柏レイソル">
+      <div>
+        <div class="header-title">KASHIWA REYSOL</div>
+        <div class="header-sub">柏レイソル ファンアプリ</div>
+      </div>
+    </div>
+    <div class="live-badge">LIVE</div>
+  </div>
+
+  <div id="banner"></div>
+
+  <div class="tabbar" id="tabbar"></div>
+
+  <div class="content" id="content"></div>
+
+  <nav class="bottom-nav" id="bottom-nav"></nav>
+</div>
+
+<script>
+const Y = '#FFD700';
+
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const matches = [
+  { id:5, date:'2026年3月7日(土)', time:'13:00', home:'ジェフ千葉', away:'柏レイソル', homeScore:null, awayScore:null, venue:'フクダ電子アリーナ', status:'upcoming', competition:'J1百年構想リーグ EAST 第5節' },
+  { id:6, date:'2026年3月14日(土)', time:'14:00', home:'柏レイソル', away:'FC町田ゼルビア', homeScore:null, awayScore:null, venue:'三協フロンテア柏スタジアム', status:'upcoming', competition:'J1百年構想リーグ EAST 第6節' },
+  { id:4, date:'2026年2月28日(土)', time:'試合終了', home:'FC東京', away:'柏レイソル', homeScore:0, awayScore:2, venue:'味の素スタジアム', status:'finished', competition:'J1百年構想リーグ EAST 第4節', scorers:["垣田裕暉 54'","瀬川祐輔 82'"] },
+  { id:3, date:'2026年2月21日(土)', time:'試合終了', home:'鹿島アントラーズ', away:'柏レイソル', homeScore:2, awayScore:0, venue:'MEIJI YASUDA J1 PARK茨城', status:'finished', competition:'J1百年構想リーグ EAST 第3節', scorers:[] },
+  { id:2, date:'2026年2月15日(日)', time:'試合終了', home:'柏レイソル', away:'東京ヴェルディ', homeScore:1, awayScore:2, venue:'三協フロンテア柏スタジアム', status:'finished', competition:'J1百年構想リーグ EAST 第2節', scorers:["小泉佳穂 33'"] },
+  { id:1, date:'2026年2月8日(日)', time:'試合終了', home:'川崎フロンターレ', away:'柏レイソル', homeScore:5, awayScore:3, venue:'Uvanceとどろきスタジアム', status:'finished', competition:'J1百年構想リーグ EAST 第1節', scorers:["垣田裕暉","瀬川祐輔","小見洋太"] },
+];
+
+const news = [
+  { id:1, category:'試合結果', color:'#4caf50', source:'サッカーマガジンWEB', date:'2026/03/01', title:"亡き祖父へ捧げたゴール…先発落ちから奮起の柏MF瀬川祐輔が涙の追加点", summary:'FC東京戦で途中出場した瀬川祐輔が追加点を決め初勝利に貢献。今週亡くなった祖父への誓いを果たし、ゴール後は涙をおさえられなかった。', url:'https://soccermagazine.jp/j1/17824558', hot:true },
+  { id:2, category:'試合結果', color:'#4caf50', source:'ゲキサカ', date:'2026/03/01', title:'亡き祖父へ、ゴールを捧げた。柏FW瀬川祐輔が涙の追加点「ゴールを決めると約束して」', summary:'柏レイソルMF瀬川祐輔がFC東京戦後に語ったコメント。3連敗から脱出し、亡き祖父へ誓いのゴールを届けた。', url:'https://web.gekisaka.jp/news/jleague/detail/?447089-447089-fl=', hot:true },
+  { id:3, category:'マッチコラム', color:'#e91e63', source:'柏フットボールジャーナル', date:'2026/02/23', title:'決定力不足と脆弱なセットプレー。選手のコンディション不良も相まって苦しい戦いが続く／J1 第3節 鹿島 vs 柏【マッチコラム】', summary:'第3節鹿島戦（2-0敗戦）を詳細レビュー。決定機を複数回逃した前半の決定力不足と、セットプレーから失点した守備の課題を分析。', url:'https://www1.targma.jp/kashiwa/2026/02/23/post31056/', hot:false },
+  { id:4, category:'マッチコラム', color:'#e91e63', source:'柏フットボールジャーナル', date:'2026/02/20', title:'相手を自陣に押し下げよ。数字が示す柏の破壊力と、それを無力化する鹿島のしたたかなビルドアップ／【プレビュー】', summary:'第3節 鹿島 vs 柏のプレビュー。ゴール期待値の高さが勝利を保証しない現状と、鹿島のビルドアップへの対策を詳細に考察。', url:'https://www1.targma.jp/kashiwa/2026/02/20/post31040/', hot:false },
+  { id:5, category:'コラム', color:'#e91e63', source:'柏フットボールジャーナル', date:'2026/01/16', title:'充実のキャンプ序盤を振り返る【2026年指宿キャンプレポート】', summary:'2025年J1 2位の勢いそのままに始動した2026年。古賀太陽が「去年よりも積み上げられる」と語るなど、戦術浸透度への確信が随所に見られたキャンプ序盤を詳報。', url:'https://www1.targma.jp/kashiwa/2026/01/16/post30872/', hot:false },
+  { id:6, category:'インタビュー', color:Y, source:'柏レイソル公式', date:'2026/02/14', title:'小見洋太選手 1分クエスチョン――新シーズンへの意気込みを語る', summary:'今季の目標、チームの雰囲気、プライベートの一面まで。小見洋太が公式動画で率直に答えた。', url:'https://www.reysol.co.jp/news/', hot:false },
+  { id:7, category:'移籍情報', color:'#2196f3', source:'Goal.com', date:'2026/02/28', title:'柏レイソル、中央大DFの2027年加入内定を発表「身を粉にして柏のために闘います」', summary:'中央大学3年・常藤奏がDF2027年加入内定。興国高出身で全日本大学選抜にも選ばれた注目の若手DFが柏入りを決めた。', url:'https://www.goal.com/jp/', hot:false },
+  { id:8, category:'クラブ情報', color:'#ff9800', source:'柏レイソル公式', date:'2026/02/01', title:'2026シーズンポスター完成のお知らせ——古賀太陽・垣田裕暉・小見洋太・久保藤次郎の4選手が登場', summary:'2026シーズンの公式ポスターが完成。4選手が勢揃いしたデザインで、柏市内の複数のショップにて配布中。', url:'https://www.reysol.co.jp/news/', hot:false },
+];
+
+const standings = [
+  { pos:1, team:'鹿島アントラーズ', played:4, won:3, draw:0, lost:1, gf:7, ga:3, pts:10 },
+  { pos:2, team:'FC町田ゼルビア', played:4, won:3, draw:1, lost:1, gf:9, ga:7, pts:9 },
+  { pos:3, team:'東京ヴェルディ', played:4, won:3, draw:1, lost:1, gf:9, ga:7, pts:8 },
+  { pos:4, team:'浦和レッズ', played:4, won:2, draw:0, lost:2, gf:7, ga:4, pts:7 },
+  { pos:5, team:'川崎フロンターレ', played:4, won:3, draw:2, lost:1, gf:8, ga:7, pts:7 },
+  { pos:6, team:'FC東京', played:4, won:3, draw:2, lost:1, gf:4, ga:5, pts:7 },
+  { pos:7, team:'水戸ホーリーホック', played:4, won:1, draw:1, lost:3, gf:6, ga:8, pts:4 },
+  { pos:8, team:'柏レイソル', played:4, won:1, draw:0, lost:3, gf:6, ga:9, pts:3 },
+  { pos:9, team:'横浜F・マリノス', played:4, won:1, draw:0, lost:3, gf:5, ga:8, pts:3 },
+  { pos:10, team:'ジェフ千葉', played:4, won:0, draw:0, lost:4, gf:2, ga:5, pts:2 },
+];
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let activeTab = 'news';
+let newsFilter = 'すべて';
+let expandedMatch = null;
+let bbsPage = 1;
+let rssNews = [];       // RSSから取得した記事
+let rssLoading = false;
+let rssError = false;
+
+// ── RSS FETCH ─────────────────────────────────────────────────────────────────
+// rss2json: 無料・CORSなし・JSON変換プロキシ
+const RSS_SOURCES = [
+  { url: 'https://www.reysol.co.jp/feed/', source: '柏レイソル公式', category: 'クラブ情報', color: '#ff9800' },
+  { url: 'https://web.gekisaka.jp/feed/jleague/', source: 'ゲキサカ', category: '試合結果', color: '#4caf50' },
+  { url: 'https://www1.targma.jp/kashiwa/feed/', source: '柏フットボールジャーナル', category: 'マッチコラム', color: '#e91e63' },
+];
+
+async function fetchRSS() {
+  rssLoading = true;
+  rssError = false;
+  if (activeTab === 'news') render();
+
+  const keyword = '柏';
+  const allItems = [];
+
+  await Promise.all(RSS_SOURCES.map(async (src) => {
+    try {
+      const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(src.url)}&api_key=public&count=30`;
+      const res = await fetch(apiUrl);
+      const data = await res.json();
+      if (data.status !== 'ok') return;
+      data.items.forEach(item => {
+        // 柏レイソル関連のみフィルタ
+        const text = (item.title + ' ' + (item.description||'')).toLowerCase();
+        const isReysol = src.source === '柏レイソル公式' || src.source === '柏フットボールジャーナル'
+          || text.includes('柏') || text.includes('reysol') || text.includes('レイソル');
         if (!isReysol) return;
         const pubDate = new Date(item.pubDate);
         const dateStr = `${pubDate.getFullYear()}/${String(pubDate.getMonth()+1).padStart(2,'0')}/${String(pubDate.getDate()).padStart(2,'0')}`;
@@ -213,113 +268,44 @@
 function renderBanner() {
   const showBanner = activeTab !== 'board';
   const bannerEl = document.getElementById('banner');
-[534 lines total]",
-        "uuid": "3d0a450f-319f-4099-a86f-f4d9e8c6f9b7"
-      }
-    ],
-    "is_error": false,
-    "structured_content": null,
-    "meta": null,
-    "message": null,
-    "integration_name": null,
-    "integration_icon_url": null,
-    "icon_name": "file",
-    "display_content": {
-      "type": "json_block",
-      "json_block": "{"language": "html", "code": "          || text.includes('柏') || text.includes('reysol') || text.includes('レイソル');\
-        if (!isReysol) return;\
-        const pubDate = new Date(item.pubDate);\
-        const dateStr = `${pubDate.getFullYear()}/${String(pubDate.getMonth()+1).padStart(2,'0')}/${String(pubDate.getDate()).padStart(2,'0')}`;\
-        // summaryのHTMLタグを除去\
-        const summary = (item.description || '').replace(/<[^>]+>/g,'').slice(0, 100);\
-        allItems.push({\
-          id: item.link,\
-          category: src.category,\
-          color: src.color,\
-          source: src.source,\
-          date: dateStr,\
-          pubDate: pubDate,\
-          title: item.title,\
-          summary: summary,\
-          url: item.link,\
-          hot: false,\
-        });\
-      });\
-    } catch(e) {}\
-  }));\
-\
-  if (allItems.length > 0) {\
-    // 日付順にソート\
-    allItems.sort((a, b) => b.pubDate - a.pubDate);\
-    rssNews = allItems.slice(0, 40);\
-    rssError = false;\
-  } else {\
-    // RSSが取れなかった場合は静的データにフォールバック\
-    rssNews = news;\
-    rssError = true;\
-  }\
-\
-  rssLoading = false;\
-  if (activeTab === 'news') render();\
-}\
-\
-// ── BANNER ────────────────────────────────────────────────────────────────────\
-function renderBanner() {\
-  const showBanner = activeTab !== 'board';\
-  const bannerEl = document.getElementById('banner');\
-", "filename": "/mnt/user-data/outputs/reysol-pwa/index.html"}"
-    }
-  },
-  {
-    "start_timestamp": "2026-03-05T13:44:10.195096Z",
-    "stop_timestamp": "2026-03-05T13:44:11.179541Z",
-    "flags": null,
-    "type": "tool_use",
-    "id": "toolu_01VyPq7o9bQYfxzCPeRvQCTu",
-    "name": "view",
-    "input": {
-      "description": "Check tabs and nav arrays, render function, and init",
-      "path": "/mnt/user-data/outputs/reysol-pwa/index.html",
-      "view_range": [
-        295,
-        340
-      ]
-    },
-    "message": "Check tabs and nav arrays, render function, and init",
-    "integration_name": null,
-    "integration_icon_url": null,
-    "icon_name": "file",
-    "context": null,
-    "display_content": {
-      "type": "text",
-      "text": "Check tabs and nav arrays, render function, and init"
-    },
-    "approval_options": null,
-    "approval_key": null,
-    "is_mcp_app": null
-  },
-  {
-    "start_timestamp": null,
-    "stop_timestamp": null,
-    "flags": null,
-    "type": "tool_result",
-    "tool_use_id": "toolu_01VyPq7o9bQYfxzCPeRvQCTu",
-    "name": "view",
-    "content": [
-      {
-        "type": "text",
-        "text": "   295	
+  if (!showBanner) { bannerEl.innerHTML = ''; return; }
+  bannerEl.innerHTML = `
+    <div class="banner fade-in">
+      <div class="banner-label">📅 NEXT MATCH — J1百年構想リーグ EAST 第5節</div>
+      <div class="banner-row">
+        <div style="flex:1;text-align:center">
+          <div class="banner-team-sub">HOME</div>
+          <div class="banner-team">ジェフ千葉</div>
+        </div>
+        <div style="text-align:center;padding:0 12px">
+          <div class="banner-vs">VS</div>
+          <div class="banner-date">3/7(土) 13:00</div>
+        </div>
+        <div style="flex:1;text-align:center">
+          <div class="banner-team-sub">AWAY</div>
+          <div class="banner-team" style="color:var(--y)">柏レイソル</div>
+        </div>
+      </div>
+      <div class="banner-btns">
+        <a href="https://www.reysol.co.jp/ticket/" target="_blank" class="banner-btn banner-btn-y">チケット購入</a>
+        <a href="https://www.reysol.co.jp/game/results/" target="_blank" class="banner-btn banner-btn-ghost">試合情報詳細</a>
+      </div>
+    </div>`;
+}
+
 // ── TAB BAR ───────────────────────────────────────────────────────────────────
 const tabs = [
   { key:'news', icon:'📰', label:'ニュース' },
   { key:'matches', icon:'⚽', label:'試合情報' },
-  { key:'board', icon:'💬', label:'掲示板' },
+  { key:'community', icon:'💬', label:'トーク' },
+  { key:'board', icon:'📋', label:'掲示板' },
   { key:'standings', icon:'📊', label:'順位表' },
 ];
 const navItems = [
   { key:'news', icon:'📰', label:'ニュース' },
   { key:'matches', icon:'⚽', label:'試合' },
-  { key:'board', icon:'💬', label:'掲示板' },
+  { key:'community', icon:'💬', label:'トーク' },
+  { key:'board', icon:'📋', label:'掲示板' },
   { key:'standings', icon:'📊', label:'順位' },
 ];
 
@@ -354,218 +340,84 @@ function renderNews() {
         ${rssError ? '⚠️ オフライン — キャッシュ表示中' : `✅ ${displayNews.length}件取得 · リアルタイム`}
       </div>
       <button onclick="fetchRSS()" style="background:none;border:1px solid #333;border-radius:8px;padding:4px 10px;color:#888;font-size:11px;cursor:pointer;font-family:inherit">🔄 更新</button>
-[534 lines total]",
-        "uuid": "05e96ed1-843f-45d3-a74b-7128bfe47fb4"
-      }
-    ],
-    "is_error": false,
-    "structured_content": null,
-    "meta": null,
-    "message": null,
-    "integration_name": null,
-    "integration_icon_url": null,
-    "icon_name": "file",
-    "display_content": {
-      "type": "json_block",
-      "json_block": "{"language": "html", "code": "\
-// ── TAB BAR ───────────────────────────────────────────────────────────────────\
-const tabs = [\
-  { key:'news', icon:'📰', label:'ニュース' },\
-  { key:'matches', icon:'⚽', label:'試合情報' },\
-  { key:'board', icon:'💬', label:'掲示板' },\
-  { key:'standings', icon:'📊', label:'順位表' },\
-];\
-const navItems = [\
-  { key:'news', icon:'📰', label:'ニュース' },\
-  { key:'matches', icon:'⚽', label:'試合' },\
-  { key:'board', icon:'💬', label:'掲示板' },\
-  { key:'standings', icon:'📊', label:'順位' },\
-];\
-\
-function renderNav() {\
-  document.getElementById('tabbar').innerHTML = tabs.map(t =>\
-    `<button class=\"tab-btn ${activeTab===t.key?'active':''}\" onclick=\"setTab('${t.key}')\">${t.icon} ${t.label}</button>`\
-  ).join('');\
-  document.getElementById('bottom-nav').innerHTML = navItems.map(it =>\
-    `<button class=\"nav-item ${activeTab===it.key?'active':''}\" onclick=\"setTab('${it.key}')\">\
-      <span class=\"nav-icon\">${it.icon}</span>\
-      <span class=\"nav-label\">${it.label}</span>\
-    </button>`\
-  ).join('');\
-}\
-\
-// ── TABS ──────────────────────────────────────────────────────────────────────\
-function renderNews() {\
-  const categories = ['すべて','試合結果','マッチコラム','コラム','インタビュー','移籍情報','クラブ情報'];\
-  const displayNews = rssNews.length > 0 ? rssNews : news;\
-  const filtered = newsFilter === 'すべて' ? displayNews : displayNews.filter(n => n.category === newsFilter);\
-\
-  if (rssLoading) return `\
-    <div style=\"text-align:center;padding:40px 16px\">\
-      <div style=\"font-size:32px;margin-bottom:12px\">📡</div>\
-      <div style=\"color:var(--y);font-weight:700;font-size:14px;margin-bottom:6px\">ニュースを取得中...</div>\
-      <div style=\"color:#555;font-size:12px\">各サイトのRSSフィードを読み込んでいます</div>\
-    </div>`;\
-\
-  return `\
-    <div style=\"display:flex;align-items:center;justify-content:space-between;margin-bottom:10px\">\
-      <div style=\"color:#555;font-size:11px\">\
-        ${rssError ? '⚠️ オフライン — キャッシュ表示中' : `✅ ${displayNews.length}件取得 · リアルタイム`}\
-      </div>\
-      <button onclick=\"fetchRSS()\" style=\"background:none;border:1px solid #333;border-radius:8px;padding:4px 10px;color:#888;font-size:11px;cursor:pointer;font-family:inherit\">🔄 更新</button>\
-", "filename": "/mnt/user-data/outputs/reysol-pwa/index.html"}"
-    }
-  },
-  {
-    "start_timestamp": "2026-03-05T13:44:14.524846Z",
-    "stop_timestamp": "2026-03-05T13:44:15.172327Z",
-    "flags": null,
-    "type": "tool_use",
-    "id": "toolu_018hyeshLeyUNmZHchr8rWzX",
-    "name": "view",
-    "input": {
-      "description": "Check render, actions and init sections",
-      "path": "/mnt/user-data/outputs/reysol-pwa/index.html",
-      "view_range": [
-        420,
-        534
-      ]
-    },
-    "message": "Check render, actions and init sections",
-    "integration_name": null,
-    "integration_icon_url": null,
-    "icon_name": "file",
-    "context": null,
-    "display_content": {
-      "type": "text",
-      "text": "Check render, actions and init sections"
-    },
-    "approval_options": null,
-    "approval_key": null,
-    "is_mcp_app": null
-  },
-  {
-    "start_timestamp": null,
-    "stop_timestamp": null,
-    "flags": null,
-    "type": "tool_result",
-    "tool_use_id": "toolu_018hyeshLeyUNmZHchr8rWzX",
-    "name": "view",
-    "content": [
-      {
-        "type": "text",
-        "text": "   420	
-let chantFilter = 'team';
-
-// ── CHANT DATA ────────────────────────────────────────────────────────────────
-const chantData = {
-  team: [
-    { title: 'ミノル節', url: 'https://www.reysol-chant.com/%E3%83%9F%E3%83%8E%E3%83%AB%E7%AF%80.html' },
-    { title: 'トゥルーバーチャ', url: 'https://www.reysol-chant.com/%E3%83%88%E3%82%A5%E3%83%AB%E3%83%BC%E3%83%90%E3%83%BC%E3%83%81%E3%83%A3.html' },
-    { title: 'てのひらさぁ', url: 'https://www.reysol-chant.com/entry61.html' },
-    { title: 'Boys Only', url: 'https://www.reysol-chant.com/Boys_Only.html' },
-    { title: 'レッドリバー', url: 'https://www.reysol-chant.com/%E3%83%AC%E3%83%83%E3%83%89%E3%83%AA%E3%83%90%E3%83%BC.html' },
-    { title: 'to me, to you', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_to_me,_to_you.html' },
-    { title: "Driver's High", url: "https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_Driver%27s_High_.html" },
-    { title: 'ホワイトノイズ', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_%E3%83%9B%E3%83%AF%E3%82%A4%E3%83%88%E3%83%8E%E3%82%A4%E3%82%BA.html' },
-    { title: '男の夢叶えて前進めよ', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_%E7%94%B7%E3%81%AE%E5%A4%A2%E5%8F%B6%E3%81%88%E3%81%A6%E5%89%8D%E9%80%B2%E3%82%81%E3%82%88.html' },
-    { title: 'ゴール オラオラゴール (マトラ)', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_%E3%83%9E%E3%83%88%E3%83%A9.html' },
-    { title: 'オッオーオア (柏ゴールチャント)', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88.html' },
-    { title: 'チュニジア', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_%E3%83%81%E3%83%A5%E3%83%8B%E3%82%B8%E3%82%A2.html' },
-    { title: 'Over the Sun', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_Over_the_Sun.html' },
-    { title: 'RAISE A FLAG', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_RAISE_A_FLAG.html' },
-    { title: 'ねぇ過ぎた時', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_%E3%81%AD%E3%81%87%E9%81%8E%E3%81%8E%E3%81%9F%E6%99%82.html' },
-    { title: '夢から世界へ「木枯らしの中から始まる」', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_%E5%A4%A2%E3%81%8B%E3%82%89%E4%B8%96%E7%95%8C%E3%81%B8.html' },
-    { title: '勝利を掴め！それなのに', url: 'https://www.reysol-chant.com/%E5%8B%9D%E5%88%A9%E3%82%92%E6%8E%B4%E3%82%81%EF%BC%81%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_%E3%81%9D%E3%82%8C%E3%81%AA%E3%81%AE%E3%81%AB.html' },
-    { title: 'アリオーア (ジョージ・イタリアーノ)', url: 'https://www.reysol-chant.com/%E3%82%A2%E3%83%AA%E3%82%AA%E3%83%BC%E3%82%A2_%E3%83%90%E3%83%A9_%E3%83%90%E3%83%A9_%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_%E3%82%B8%E3%83%A7%E3%83%BC%E3%82%B8%E3%82%A4%E3%82%BF%E3%83%AA%E3%82%A2%E3%83%BC%E3%83%8E.html' },
-    { title: 'イングランド', url: 'https://www.reysol-chant.com/%E3%82%A4%E3%83%B3%E3%82%B0%E3%83%A9%E3%83%B3%E3%83%89.html' },
-    { title: 'Lorenzo(ロレンツォ)', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_Lorenzo(%E3%83%AD%E3%83%AC%E3%83%B3%E3%83%84%E3%82%A9).html' },
-    { title: 'アルゴル', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88%E3%82%A2%E3%83%AB%E3%82%B4%E3%83%AB.html' },
-    { title: '捧げてよ「魂は」', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_%E6%8D%A7%E3%81%92%E3%81%A6%E3%82%88%E5%85%A8%E3%81%A6%E3%82%92_%E9%AD%82%E3%81%AF.html' },
-    { title: 'カナリアソング', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_%E3%82%AB%E3%83%8A%E3%83%AA%E3%82%A2%E3%82%BD%E3%83%B3%E3%82%B0.html' },
-    { title: 'レイソル ラッシュレイシレイ (浦和マリボ)', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88_%E6%B5%A6%E5%92%8C%E3%83%9E%E3%83%AA%E3%83%9C.html' },
-    { title: 'サンバデジャネイロ', url: 'https://www.reysol-chant.com/%E3%82%B5%E3%83%B3%E3%83%90%E3%83%87%E3%82%B8%E3%83%A3%E3%83%8D%E3%82%A4%E3%83%AD.html' },
-    { title: '勝利を掴め！オレ！', url: 'https://www.reysol-chant.com/%E5%8B%9D%E5%88%A9%E3%82%92%E6%8E%B4%E3%82%81%EF%BC%81%E3%82%AA%E3%83%AC.html' },
-    { title: 'AIDA アイーダ', url: 'https://www.reysol-chant.com/%E3%82%AA%E3%83%BC%E3%83%AC%E3%83%BC_%E3%83%90%E3%83%A9_%E3%83%90%E3%83%A9_AIDA_%E3%82%A2%E3%82%A4%E3%83%BC%E3%83%80.html' },
-    { title: '2024新曲 チームチャント「パレード」', url: 'https://www.reysol-chant.com/2024%E6%96%B0%E6%9B%B2_%E3%83%81%E3%83%BC%E3%83%A0%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88.html' },
-  ],
-  player: [
-    { title: '細谷 真大', url: 'https://www.reysol-chant.com/%E7%B4%B0%E8%B0%B7_%E7%9C%9F%E5%A4%A7.html' },
-    { title: '木下 康介', url: 'https://www.reysol-chant.com/%E6%9C%A8%E4%B8%8B_%E5%BA%B7%E4%BB%8B.html' },
-    { title: '木下 翼人', url: 'https://www.reysol-chant.com/%E6%9C%A8%E4%B8%8B_%E7%BF%BC%E4%BA%BA.html' },
-    { title: '立田 悠悟', url: 'https://www.reysol-chant.com/%E7%AB%8B%E7%94%B0_%E6%82%A0%E6%82%9F.html' },
-    { title: '山田 雄士', url: 'https://www.reysol-chant.com/%E5%B1%B1%E7%94%B0_%E9%9B%84%E5%A3%AB.html' },
-    { title: '辻 周吾', url: 'https://www.reysol-chant.com/%E8%BE%BB_%E5%91%A8%E5%90%BE.html' },
-    { title: '関根 貴大', url: 'https://www.reysol-chant.com/%E9%96%A2%E6%A0%B9_%E8%B2%B4%E5%A4%A7.html' },
-    { title: '宮市 亮', url: 'https://www.reysol-chant.com/%E5%AE%AE%E5%B8%82_%E4%BA%AE.html' },
-    { title: '垣田 裕暉', url: 'https://www.reysol-chant.com/%E5%9E%A3%E7%94%B0_%E8%A3%95%E6%9A%89.html' },
-    { title: '犬飼 智也', url: 'https://www.reysol-chant.com/%E7%8A%AC%E9%A3%BC_%E6%99%BA%E4%B9%9F.html' },
-    { title: '蔦田 大介', url: 'https://www.reysol-chant.com/%E8%94%A6%E7%94%B0_%E5%A4%A7%E4%BB%8B.html' },
-    { title: '高嶺 朋樹', url: 'https://www.reysol-chant.com/%E9%AB%98%E5%B6%BA_%E6%9C%8B%E6%A8%B9.html' },
-    { title: '古谷 優斗', url: 'https://www.reysol-chant.com/%E5%8F%A4%E8%B0%B7_%E5%84%AA%E6%96%97_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88.html' },
-    { title: '小見 洋太', url: 'https://www.reysol-chant.com/%E5%B0%8F%E8%A6%8B_%E6%B4%8B%E5%A4%AA_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88.html' },
-    { title: '熊谷 男爵', url: 'https://www.reysol-chant.com/%E7%86%8A%E8%B0%B7_%E7%94%B7%E7%88%B5.html' },
-    { title: '岩崎 悠人', url: 'https://www.reysol-chant.com/%E5%B2%A9%E5%B4%8E_%E6%82%A0%E4%BA%BA_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88.html' },
-    { title: '岡本 将也', url: 'https://www.reysol-chant.com/%E5%B2%A1%E6%9C%AC%E5%B0%86%E4%B9%9F.html' },
-    { title: '三丸 拓', url: 'https://www.reysol-chant.com/%E4%B8%89%E4%B8%B8_%E6%8B%93.html' },
-    { title: '瀬川 祐輔', url: 'https://www.reysol-chant.com/%E7%80%AC%E5%B7%9D_%E7%A5%90%E8%BC%94.html' },
-    { title: '選手紹介BGM', url: 'https://www.reysol-chant.com/%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB_%E9%81%B8%E6%89%8B%E7%B4%B9%E4%BB%8BBGM.html' },
-  ],
-  past: [
-    { title: 'マテウス サヴィオ', url: 'https://www.reysol-chant.com/%E3%83%9E%E3%83%86%E3%82%A6%E3%82%B9_%E3%82%B5%E3%83%B4%E3%82%A3%E3%82%AA.html' },
-    { title: '高嶺 朋樹', url: 'https://www.reysol-chant.com/%E9%AB%98%E5%B6%BA_%E6%9C%8B%E6%A8%B9_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88.html' },
-    { title: '山田 椎汰', url: 'https://www.reysol-chant.com/%E5%B1%B1%E7%94%B0_%E6%A4%8E%E6%B1%B0_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88.html' },
-    { title: 'ジエゴ', url: 'https://www.reysol-chant.com/%E3%82%B8%E3%82%A8%E3%82%B4_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88.html' },
-    { title: '椎名 伸志', url: 'https://www.reysol-chant.com/%E6%A4%8E%E5%90%8D_%E4%BC%B8%E5%BF%97_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88.html' },
-    { title: '加藤 匠人', url: 'https://www.reysol-chant.com/%E5%8A%A0%E8%97%A4_%E5%8C%A0%E4%BA%BA.html' },
-    { title: '川口 尚紀', url: 'https://www.reysol-chant.com/%E5%B7%9D%E5%8F%A3_%E5%B0%9A%E7%B4%80.html' },
-    { title: '飯田 旺介', url: 'https://www.reysol-chant.com/%E9%A3%AF%E7%94%B0_%E6%97%BA%E4%BB%8B_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88.html' },
-    { title: '三原 克也', url: 'https://www.reysol-chant.com/%E4%B8%89%E5%8E%9F%E5%85%8B%E4%B9%9F.html' },
-    { title: '鵜木 蓮', url: 'https://www.reysol-chant.com/%E9%B5%9C%E6%9C%A8_%E8%93%AE_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88.html' },
-    { title: '津田 歩夢', url: 'https://www.reysol-chant.com/%E6%B4%A5%E7%94%B0_%E6%AD%A9%E5%A4%A2_%E3%83%81%E3%83%A3%E3%83%B3%E3%83%88.html' },
-  ],
-};
-
-function renderChant() {
-  const sections = [
-    { key:'team',   label:'チームチャント',  icon:'🏆' },
-    { key:'player', label:'選手チャント',    icon:'👤' },
-    { key:'past',   label:'過去の在籍選手',  icon:'📜' },
-  ];
-  const items = chantData[chantFilter] || [];
-  return `
-    <div style="margin-bottom:14px">
-      <div style="color:var(--y);font-weight:900;font-size:15px;margin-bottom:10px">🎵 チャント</div>
-      <div style="display:flex;gap:6px;margin-bottom:16px">
-        ${sections.map(s => `
-          <button onclick="setChantFilter('${s.key}')"
-            style="flex:1;padding:8px 4px;border-radius:10px;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;
-              background:${chantFilter===s.key?'var(--y)':'#1e1e1e'};
-              color:${chantFilter===s.key?'#1a1a1a':'#888'}">
-            ${s.icon}<br>${s.label}
-          </button>`).join('')}
-      </div>
-      <div style="color:#555;font-size:11px;margin-bottom:12px">${items.length}件 · タップで歌詞・動画を確認</div>
     </div>
-    ${items.map((c, i) => `
-      <a href="${c.url}" target="_blank" style="display:flex;align-items:center;gap:12px;background:var(--card);border-radius:12px;padding:13px 14px;margin-bottom:8px;text-decoration:none;border:1px solid var(--border);" class="fade-in" style="animation-delay:${i*0.03}s">
-        <div style="width:36px;height:36px;background:#1e1e1e;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🎵</div>
-        <div style="flex:1">
-          <div style="color:#ddd;font-size:14px;font-weight:700">${c.title}</div>
-          <div style="color:#555;font-size:11px;margin-top:2px">reysol-chant.com →</div>
+    <div class="cat-chips">
+      ${categories.map(c => `<button class="chip ${newsFilter===c?'active':''}" onclick="setNewsFilter('${c}')">${c}</button>`).join('')}
+    </div>
+    ${filtered.length === 0 ? `<div style="text-align:center;padding:32px;color:#555">該当する記事がありません</div>` : ''}
+    ${filtered.map((a,i) => `
+      <a href="${a.url}" target="_blank" class="card ${a.hot?'hot':''} fade-in" style="animation-delay:${i*0.03}s;display:block;text-decoration:none">
+        ${a.hot ? '<div style="display:flex;justify-content:flex-end;margin-bottom:4px"><span class="hot-badge">🔥 HOT</span></div>' : ''}
+        <div class="news-meta">
+          <span class="cat-tag" style="color:${a.color};background:${a.color}22;border-color:${a.color}55">${a.category}</span>
+          <span class="news-source">${a.source}</span>
+          <span class="news-date">${a.date}</span>
         </div>
-        <div style="color:#444;font-size:18px">›</div>
-      </a>`).join('')}
-    <div style="text-align:center;margin-top:16px;padding-bottom:8px">
-      <a href="https://www.reysol-chant.com/" target="_blank" style="color:#555;font-size:11px;text-decoration:none;border:1px solid #333;border-radius:8px;padding:6px 14px;">
-        全チャントをサイトで見る →
-      </a>
-    </div>`;
+        <div class="news-title">${a.title}</div>
+        <div class="news-summary">${a.summary}</div>
+        <div class="news-read">記事を読む →</div>
+      </a>`).join('')}`;
 }
 
-function setChantFilter(key) {
-  chantFilter = key;
-  render();
+function renderMatches() {
+  return `
+    <div class="section-label">2026シーズン スケジュール</div>
+    ${matches.map((m,i) => {
+      const isReysolHome = m.home === '柏レイソル';
+      const isReysolAway = m.away === '柏レイソル';
+      const won = m.status==='finished' && (isReysolHome ? m.homeScore > m.awayScore : m.awayScore > m.homeScore);
+      const expanded = expandedMatch === m.id;
+      return `
+      <div class="card match-card ${won?'win':''} fade-in" style="animation-delay:${i*0.05}s" onclick="toggleMatch(${m.id})">
+        <div class="match-header">
+          <span class="comp-text">${m.competition}</span>
+          <span class="status-badge ${m.status==='upcoming'?'upcoming':''}">${m.status==='finished'?'終了':`${m.time} KO`}</span>
+        </div>
+        <div class="match-row">
+          <div style="flex:1"><span class="team-name ${isReysolHome?'reysol':''}">${m.home}</span></div>
+          <div class="score-box">
+            ${m.status==='finished'
+              ? `<span class="score-text"><span style="color:${isReysolHome?Y:'#fff'}">${m.homeScore}</span><span style="color:#555"> - </span><span style="color:${isReysolAway?Y:'#fff'}">${m.awayScore}</span></span>`
+              : `<span class="vs-text">VS</span>`}
+          </div>
+          <div style="flex:1;text-align:right"><span class="team-name ${isReysolAway?'reysol':''}">${m.away}</span></div>
+        </div>
+        <div class="venue-text">📍 ${m.venue} · ${m.date}</div>
+        ${expanded && m.scorers && m.scorers.length > 0 ? `
+          <div class="scorers-box">
+            <div class="scorers-title">⚽ 得点者</div>
+            ${m.scorers.map(s=>`<div class="scorer-item">${s}</div>`).join('')}
+          </div>` : ''}
+      </div>`}).join('')}`;
+}
+
+function renderBoard() {
+  const url = `https://bm.best-hit.tv/reysol/?page=${bbsPage}`;
+  const pages = [1,2,3,4,5];
+  return `
+    <div style="text-align:center;padding:24px 16px 16px">
+      <div style="font-size:40px;margin-bottom:12px">💬</div>
+      <div style="color:var(--y);font-weight:900;font-size:18px;margin-bottom:6px">超柏レイソル掲示板</div>
+      <div style="color:#555;font-size:12px;margin-bottom:24px">PWAではセキュリティ制限のため埋め込み表示ができません。<br>下のボタンからSafariで直接開いてください。</div>
+      <a href="${url}" target="_blank" style="display:block;background:var(--y);color:#1a1a1a;font-weight:900;font-size:15px;padding:14px;border-radius:14px;text-decoration:none;margin-bottom:12px">
+        📋 掲示板を開く（最新の投稿）
+      </a>
+      <a href="https://bm.best-hit.tv/reysol/?mode=post" target="_blank" style="display:block;border:1px solid color-mix(in srgb,var(--y) 40%,transparent);color:var(--y);font-weight:700;font-size:13px;padding:12px;border-radius:14px;text-decoration:none;margin-bottom:24px;background:color-mix(in srgb,var(--y) 8%,transparent)">
+        ✏️ 新規投稿する
+      </a>
+      <div style="color:#444;font-size:11px;margin-bottom:10px">ページを選んで開く</div>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        ${pages.map(p => `
+          <a href="https://bm.best-hit.tv/reysol/?page=${p}" target="_blank"
+            style="border:1px solid color-mix(in srgb,var(--y) ${p===bbsPage?'60':'25'}%,transparent);
+            background:color-mix(in srgb,var(--y) ${p===bbsPage?'18':'6'}%,transparent);
+            color:${p===bbsPage?'var(--y)':'#888'};
+            font-weight:${p===bbsPage?'700':'400'};
+            border-radius:10px;padding:8px 16px;font-size:13px;text-decoration:none">
+            ${p}ページ
+          </a>`).join('')}
+      </div>
+    </div>`;
 }
 
 function renderStandings() {
@@ -606,20 +458,11 @@ function render() {
     content.innerHTML = renderBoard();
   } else if (activeTab === 'community') {
     content.className = 'content';
-    content.innerHTML = '<div id="community-root"></div>';
-    if (window.renderCommunity) {
-      window.renderCommunity();
-    } else {
-      const t = setInterval(() => {
-        if (window.renderCommunity) { clearInterval(t); window.renderCommunity(); }
-      }, 200);
-      setTimeout(() => clearInterval(t), 10000);
-    }
+    content.innerHTML = renderCommunity();
   } else {
     content.className = 'content';
     if (activeTab === 'news') content.innerHTML = renderNews();
     else if (activeTab === 'matches') content.innerHTML = renderMatches();
-    else if (activeTab === 'chant') content.innerHTML = renderChant();
     else if (activeTab === 'standings') content.innerHTML = renderStandings();
   }
 }
@@ -627,8 +470,10 @@ function render() {
 // ── ACTIONS ───────────────────────────────────────────────────────────────────
 function setTab(key) {
   activeTab = key;
+  window.activeTab = key;
   render();
   document.getElementById('content').scrollTop = 0;
+  if (key === 'community') setTimeout(() => { if (window.renderCommunityDOM) window.renderCommunityDOM(); }, 50);
 }
 
 function setNewsFilter(cat) {
@@ -684,7 +529,7 @@ function onBBSLoad(iframe) {
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 render();
-fetchRSS(); // 起動時に自動でRSS取得
+fetchRSS();
 
 // Service Worker
 if ('serviceWorker' in navigator) {
@@ -712,20 +557,20 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
-// ── STATE ────────────────────────────────────────────────────────────────────
-let currentUser  = null;
-let nickname     = localStorage.getItem('reysol_nickname') || '';
+// ── STATE ──────────────────────────────────────────────────────────────────────
+let currentUser = null;
+let nickname = localStorage.getItem('reysol_nickname') || '';
 let communityPosts = [];
-let unsubPosts   = null;
-let replyingTo   = null;
-let openReplies  = {};
+let unsubPosts = null;
 
+// ── AUTH ───────────────────────────────────────────────────────────────────────
 signInAnonymously(auth);
 onAuthStateChanged(auth, user => {
   currentUser = user;
   if (user && window.activeTab === 'community') renderCommunityDOM();
 });
 
+// ── POSTS LISTENER ────────────────────────────────────────────────────────────
 function subscribePosts() {
   if (unsubPosts) return;
   const q = query(ref(db, 'posts'), orderByChild('ts'), limitToLast(50));
@@ -738,6 +583,7 @@ function subscribePosts() {
   });
 }
 
+// ── HELPERS ───────────────────────────────────────────────────────────────────
 function escapeHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -751,9 +597,14 @@ function timeAgo(ts) {
   return `${Math.floor(diff/86400000)}日前`;
 }
 
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let replyingTo = null; // { id, nick } | null
+let openReplies = {}; // postId -> bool
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
 window.renderCommunity = function() {
   subscribePosts();
-  renderCommunityDOM();
+  return `<div id="community-root"></div>`;
 };
 
 function renderPostCard(p) {
@@ -866,8 +717,7 @@ window.saveNickname = function() {
 };
 
 window.changeNickname = function() {
-  if (confirm(`ニックネームを変更しますか？\
-現在: ${nickname}`)) {
+  if (confirm(`ニックネームを変更しますか？\n現在: ${nickname}`)) {
     nickname = '';
     localStorage.removeItem('reysol_nickname');
     renderCommunityDOM();
