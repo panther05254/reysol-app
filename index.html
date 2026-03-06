@@ -167,10 +167,10 @@ let standingsLoading = false;
 let matchesError = false;
 let standingsError = false;
 
-const API_KEY = '37a095f37b3be013ccb82836dc2cb33a';
-const KASHIWA_ID = 2323;
-const J1_LEAGUE_ID = 98;
-const SEASON = 2026;
+// TheSportsDB (無料・APIキー不要・2026対応)
+const TSDB = 'https://www.thesportsdb.com/api/v1/json/123';
+const J1_ID = '4633';       // J1リーグ
+const KASHIWA_TSDB = '134440'; // 柏レイソル チームID
 
 // チーム名の日本語変換マップ
 const TEAM_JP = {
@@ -181,7 +181,9 @@ const TEAM_JP = {
   'Kawasaki Frontale': '川崎フロンターレ',
   'Yokohama F.Marinos': '横浜F・マリノス',
   'Yokohama F. Marinos': '横浜F・マリノス',
+  'Yokohama Marinos': '横浜F・マリノス',
   'Urawa Red Diamonds': '浦和レッズ',
+  'Urawa Reds': '浦和レッズ',
   'Gamba Osaka': 'ガンバ大阪',
   'Cerezo Osaka': 'セレッソ大阪',
   'Vissel Kobe': 'ヴィッセル神戸',
@@ -191,13 +193,17 @@ const TEAM_JP = {
   'Shonan Bellmare': '湘南ベルマーレ',
   'Avispa Fukuoka': 'アビスパ福岡',
   'Kyoto Sanga FC': '京都サンガF.C.',
+  'Kyoto Sanga': '京都サンガF.C.',
   'Albirex Niigata': 'アルビレックス新潟',
   'Machida Zelvia': 'FC町田ゼルビア',
   'FC Machida Zelvia': 'FC町田ゼルビア',
   'Jubilo Iwata': 'ジュビロ磐田',
   'Consadole Sapporo': '北海道コンサドーレ札幌',
+  'JEF United Chiba': 'ジェフ千葉',
   'JEF United Ichihara Chiba': 'ジェフ千葉',
   'Mito HollyHock': '水戸ホーリーホック',
+  'Shimizu S-Pulse': '清水エスパルス',
+  'V-Varen Nagasaki': 'V・ファーレン長崎',
 };
 function toJP(name) { return TEAM_JP[name] || name; }
 
@@ -207,49 +213,59 @@ function fmtDate(dateStr) {
   return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日(${days[d.getDay()]})`;
 }
 function fmtTime(dateStr) {
-  const d = new Date(dateStr);
-  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  const d = new Date(dateStr + (dateStr.includes('T') ? '' : 'T00:00:00'));
+  const h = d.getHours(), m = d.getMinutes();
+  if (h === 0 && m === 0) return 'TBD';
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+}
+
+function tsdbEventToMatch(e) {
+  const finished = e.strStatus === 'Match Finished' || (e.intHomeScore !== null && e.intAwayScore !== null && e.strStatus !== 'Not Started');
+  const dateStr = e.dateEvent + (e.strTime ? 'T' + e.strTime : '');
+  return {
+    id: e.idEvent,
+    date: fmtDate(e.dateEvent),
+    time: e.strTime ? e.strTime.slice(0,5) : 'TBD',
+    home: toJP(e.strHomeTeam),
+    away: toJP(e.strAwayTeam),
+    homeScore: finished ? parseInt(e.intHomeScore) : null,
+    awayScore: finished ? parseInt(e.intAwayScore) : null,
+    venue: e.strVenue || '',
+    status: finished ? 'finished' : 'upcoming',
+    competition: e.strLeague || 'J1リーグ',
+    scorers: [],
+  };
 }
 
 async function fetchMatches() {
   matchesLoading = true;
   matchesError = false;
   if (activeTab === 'matches') render();
-  // league IDなしで全大会から柏の試合を取得（百年構想リーグ対応）
-  const urls = [
-    `https://v3.football.api-sports.io/fixtures?team=${KASHIWA_ID}&season=${SEASON}`,
-  ];
   try {
-    let allFixtures = [];
-    for (const url of urls) {
-      const res = await fetch(url, { headers: { 'x-apisports-key': API_KEY } });
-      const data = await res.json();
-      console.log('[Reysol] fixtures response:', JSON.stringify(data).slice(0, 500));
-      if (data.response && data.response.length > 0) {
-        allFixtures = allFixtures.concat(data.response);
-      }
-    }
-    if (allFixtures.length === 0) throw new Error('no data');
-    matches = allFixtures
-      .sort((a, b) => new Date(b.fixture.date) - new Date(a.fixture.date))
-      .map(f => {
-        const status = f.fixture.status.short;
-        const finished = ['FT','AET','PEN'].includes(status);
-        const live = ['1H','2H','ET','HT','P'].includes(status);
-        const round = (f.league.round || '').replace('Regular Season - ', '');
-        return {
-          id: f.fixture.id,
-          date: fmtDate(f.fixture.date),
-          time: fmtTime(f.fixture.date),
-          home: toJP(f.teams.home.name),
-          away: toJP(f.teams.away.name),
-          homeScore: finished || live ? f.goals.home : null,
-          awayScore: finished || live ? f.goals.away : null,
-          venue: f.fixture.venue.name || '',
-          status: finished ? 'finished' : (live ? 'live' : 'upcoming'),
-          competition: round ? `第${round}節` : f.league.name,
-          scorers: [],
-        };
+    const [nextRes, pastRes] = await Promise.all([
+      fetch(`${TSDB}/eventsnextleague.php?id=${J1_ID}`),
+      fetch(`${TSDB}/eventspastleague.php?id=${J1_ID}`),
+    ]);
+    const [nextData, pastData] = await Promise.all([nextRes.json(), pastRes.json()]);
+    console.log('[Reysol] next events:', nextData);
+    console.log('[Reysol] past events:', pastData);
+
+    const all = [
+      ...(nextData.events || []),
+      ...(pastData.events || []),
+    ];
+    // 柏レイソル関連のみ絞り込み
+    const reysol = all.filter(e =>
+      e.strHomeTeam?.includes('Kashiwa') || e.strAwayTeam?.includes('Kashiwa')
+    );
+    if (reysol.length === 0) throw new Error('no reysol matches');
+    matches = reysol
+      .map(tsdbEventToMatch)
+      .sort((a, b) => {
+        // 終了済みを上に、今後を下に
+        if (a.status === 'finished' && b.status !== 'finished') return -1;
+        if (a.status !== 'finished' && b.status === 'finished') return 1;
+        return 0;
       });
   } catch(e) {
     console.error('[Reysol] fetchMatches error:', e);
@@ -264,50 +280,22 @@ async function fetchStandings() {
   standingsError = false;
   if (activeTab === 'standings') render();
   try {
-    // まずleague=98で試し、ダメなら柏の所属リーグIDを自動検出
-    let leagueId = J1_LEAGUE_ID;
-    // 柏の最新試合からリーグIDを取得
-    if (matches.length > 0 && matches[0].id) {
-      const fix = await fetch(
-        `https://v3.football.api-sports.io/fixtures?id=${matches[0].id}`,
-        { headers: { 'x-apisports-key': API_KEY } }
-      );
-      const fixData = await fix.json();
-      if (fixData.response?.[0]?.league?.id) {
-        leagueId = fixData.response[0].league.id;
-        console.log('[Reysol] detected league id:', leagueId);
-      }
-    }
-    const res = await fetch(
-      `https://v3.football.api-sports.io/standings?league=${leagueId}&season=${SEASON}`,
-      { headers: { 'x-apisports-key': API_KEY } }
-    );
+    const res = await fetch(`${TSDB}/lookuptable.php?l=${J1_ID}&s=2026`);
     const data = await res.json();
-    console.log('[Reysol] standings response:', JSON.stringify(data).slice(0, 500));
-    const allStandings = data.response?.[0]?.league?.standings;
-    // グループ制（東西）の場合は柏が含まれるグループを選ぶ
-    let table = null;
-    if (allStandings) {
-      for (const group of allStandings) {
-        if (group.some(t => t.team.name.includes('Kashiwa') || toJP(t.team.name) === '柏レイソル')) {
-          table = group;
-          break;
-        }
-      }
-      if (!table) table = allStandings[0];
-    }
-    if (!table) throw new Error('no standings data');
+    console.log('[Reysol] standings:', data);
+    const table = data.table;
+    if (!table || table.length === 0) throw new Error('no standings');
     standings = table.map(t => ({
-      pos: t.rank,
-      team: toJP(t.team.name),
-      played: t.all.played,
-      won: t.all.win,
-      draw: t.all.draw,
-      lost: t.all.lose,
-      gf: t.all.goals.for,
-      ga: t.all.goals.against,
-      pts: t.points,
-    }));
+      pos: parseInt(t.intRank),
+      team: toJP(t.strTeam),
+      played: parseInt(t.intPlayed),
+      won: parseInt(t.intWin),
+      draw: parseInt(t.intDraw),
+      lost: parseInt(t.intLoss),
+      gf: parseInt(t.intGoalsFor),
+      ga: parseInt(t.intGoalsAgainst),
+      pts: parseInt(t.intPoints),
+    })).sort((a, b) => a.pos - b.pos);
   } catch(e) {
     console.error('[Reysol] fetchStandings error:', e);
     standingsError = true;
