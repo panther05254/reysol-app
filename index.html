@@ -615,7 +615,7 @@ if ('serviceWorker' in navigator) {
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
-import { getDatabase, ref, push, onValue, serverTimestamp, query, orderByChild, limitToLast, update, increment } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+import { getDatabase, ref, push, onValue, serverTimestamp, query, orderByChild, limitToLast, update, increment, remove } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBjCmDVUnUX80d_7KudYAHX9FaJun3l7ko",
@@ -690,20 +690,26 @@ window.renderCommunity = function() {
 
 function renderPostCard(p) {
   const liked = (p.likedBy||{})[currentUser?.uid];
+  const isOwn = p.uid === currentUser?.uid;
   const replyCount = p.replies ? Object.keys(p.replies).length : 0;
   const repliesOpen = openReplies[p.id];
   const repliesHtml = repliesOpen && p.replies
-    ? Object.entries(p.replies).sort((a,b) => (a[1].ts||0)-(b[1].ts||0)).map(([rid, r]) => `
+    ? Object.entries(p.replies).sort((a,b) => (a[1].ts||0)-(b[1].ts||0)).map(([rid, r]) => {
+        const isOwnReply = r.uid === currentUser?.uid;
+        return `
         <div style="display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid #222">
           <div style="width:24px;height:24px;background:${nickColor(r.nick).bg};border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:11px;flex-shrink:0">${escapeHtml(r.nick||'?')[0]}</div>
           <div style="flex:1">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
               <span style="color:${nickColor(r.nick).text};font-weight:700;font-size:12px">${escapeHtml(r.nick||'匿名')}</span>
-              <span style="color:#444;font-size:10px">${timeAgo(r.ts)}</span>
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="color:#444;font-size:10px">${timeAgo(r.ts)}</span>
+                ${isOwnReply ? `<button onclick="window.deleteReply('${p.id}','${rid}')" style="background:none;border:none;color:#555;font-size:13px;cursor:pointer;padding:0;line-height:1;" title="削除">🗑️</button>` : ''}
+              </div>
             </div>
             <div style="color:#ccc;font-size:13px;line-height:1.5;word-break:break-word">${escapeHtml(r.text||'')}</div>
           </div>
-        </div>`).join('')
+        </div>`}).join('')
     : '';
 
   return `
@@ -713,7 +719,10 @@ function renderPostCard(p) {
           <div style="width:30px;height:30px;background:${nickColor(p.nick).bg};border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:13px;flex-shrink:0">${escapeHtml(p.nick||'?')[0]}</div>
           <span style="color:${nickColor(p.nick).text};font-weight:700;font-size:13px">${escapeHtml(p.nick||'匿名')}</span>
         </div>
-        <span style="color:#444;font-size:11px">${timeAgo(p.ts)}</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="color:#444;font-size:11px">${timeAgo(p.ts)}</span>
+          ${isOwn ? `<button onclick="window.deletePost('${p.id}')" style="background:none;border:none;color:#555;font-size:15px;cursor:pointer;padding:0;line-height:1;" title="削除">🗑️</button>` : ''}
+        </div>
       </div>
       <div style="color:#ddd;font-size:14px;line-height:1.6;word-break:break-word;margin-bottom:10px">${escapeHtml(p.text||'')}</div>
       <div style="display:flex;align-items:center;gap:10px">
@@ -862,6 +871,22 @@ window.likePost = async function(postId) {
     likes: increment(alreadyLiked ? -1 : 1),
     [`likedBy/${currentUser.uid}`]: alreadyLiked ? null : true
   });
+};
+
+window.deletePost = async function(postId) {
+  if (!currentUser) return;
+  if (!confirm('この投稿を削除しますか？')) return;
+  try {
+    await remove(ref(db, `posts/${postId}`));
+  } catch(e) { alert('削除に失敗しました。'); }
+};
+
+window.deleteReply = async function(postId, replyId) {
+  if (!currentUser) return;
+  if (!confirm('この返信を削除しますか？')) return;
+  try {
+    await remove(ref(db, `posts/${postId}/replies/${replyId}`));
+  } catch(e) { alert('削除に失敗しました。'); }
 };
 </script>
 </body>
