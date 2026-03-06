@@ -291,59 +291,63 @@ async function fetchMatches() {
 }
 
 // 東グループ 10チーム（固定）
-const EAST_TEAMS = new Set([
-  '柏レイソル','鹿島アントラーズ','FC東京','東京ヴェルディ','FC町田ゼルビア',
-  '川崎フロンターレ','横浜F・マリノス','浦和レッズ','ジェフ千葉','水戸ホーリーホック',
-]);
+// 第4節終了時点の静的データ（フォールバック用）
+const STANDINGS_STATIC = [
+  { pos:1,  team:'鹿島アントラーズ',   played:4, won:3, draw:0, lost:1, gf:7, ga:3, pts:10 },
+  { pos:2,  team:'FC町田ゼルビア',     played:4, won:3, draw:1, lost:1, gf:9, ga:7, pts:9  },
+  { pos:3,  team:'東京ヴェルディ',     played:4, won:3, draw:1, lost:1, gf:9, ga:7, pts:8  },
+  { pos:4,  team:'浦和レッズ',         played:4, won:2, draw:0, lost:2, gf:7, ga:4, pts:7  },
+  { pos:5,  team:'川崎フロンターレ',   played:4, won:3, draw:2, lost:1, gf:8, ga:7, pts:7  },
+  { pos:6,  team:'FC東京',             played:4, won:3, draw:2, lost:1, gf:4, ga:5, pts:7  },
+  { pos:7,  team:'水戸ホーリーホック', played:4, won:1, draw:1, lost:3, gf:6, ga:8, pts:4  },
+  { pos:8,  team:'柏レイソル',         played:4, won:1, draw:0, lost:3, gf:6, ga:9, pts:3  },
+  { pos:9,  team:'横浜F・マリノス',    played:4, won:1, draw:0, lost:3, gf:5, ga:8, pts:3  },
+  { pos:10, team:'ジェフ千葉',         played:4, won:0, draw:0, lost:4, gf:2, ga:5, pts:2  },
+];
 
 async function fetchStandings() {
   standingsLoading = true;
   standingsError = false;
   if (activeTab === 'standings') render();
   try {
-    // eventsseason で2026年の全試合を取得（最大200件・無料枠）
-    const seasonRes = await fetch(`${TSDB}/eventsseason.php?id=${J1_ID}&s=2026`);
-    const seasonData = await seasonRes.json();
-    const allEvents = seasonData.events || [];
+    // allorigins.win プロキシ経由でmobaj.netをスクレイピング
+    const url = 'https://mobaj.net/2026/standings/j1';
+    const res = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent(url));
+    const json = await res.json();
+    const html = json.contents || '';
 
-    // 東グループチームの成績を集計
-    const table = {};
-    for (const team of EAST_TEAMS) {
-      table[team] = { team, played:0, won:0, draw:0, lost:0, gf:0, ga:0, pts:0 };
+    // EASTテーブルのtbodyを抽出
+    const tbodyMatch = html.match(/EAST[\s\S]{0,500}?<tbody>([\s\S]*?)<\/tbody>/i);
+    if (!tbodyMatch) throw new Error('EAST table not found');
+    const rows = tbodyMatch[1].match(/<tr[\s\S]*?<\/tr>/gi) || [];
+
+    const parsed = rows.map(row => {
+      const cells = (row.match(/<td[^>]*>([\s\S]*?)<\/td>/gi) || [])
+        .map(c => c.replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&#\d+;/g,'').trim());
+      if (cells.length < 9) return null;
+      // cells: [順位, クラブ, 勝点, 試合, 勝, PK勝, 負, PK負, 得点, 失点, 得失差]
+      return {
+        pos:    parseInt(cells[0]) || 0,
+        team:   cells[1],
+        pts:    parseInt(cells[2]) || 0,
+        played: parseInt(cells[3]) || 0,
+        won:    parseInt(cells[4]) || 0,
+        draw:   parseInt(cells[6]) || 0,
+        lost:   (parseInt(cells[5])||0) + (parseInt(cells[6])||0),
+        gf:     parseInt(cells[7] !== undefined ? cells[8] : cells[7]) || 0,
+        ga:     parseInt(cells[7] !== undefined ? cells[9] : cells[8]) || 0,
+      };
+    }).filter(r => r && r.pos > 0 && r.team.length > 1);
+
+    console.log('[Reysol] scraped standings:', parsed);
+    if (parsed.length >= 5) {
+      standings = parsed;
+    } else {
+      throw new Error('too few rows: ' + parsed.length);
     }
-
-    for (const e of allEvents) {
-      const home = toJP(e.strHomeTeam);
-      const away = toJP(e.strAwayTeam);
-      const hg = parseInt(e.intHomeScore);
-      const ag = parseInt(e.intAwayScore);
-      // 両チームが東グループかつ試合終了済みのみ
-      if (!EAST_TEAMS.has(home) || !EAST_TEAMS.has(away)) continue;
-      if (isNaN(hg) || isNaN(ag)) continue;
-
-      table[home].played++; table[home].gf += hg; table[home].ga += ag;
-      table[away].played++; table[away].gf += ag; table[away].ga += hg;
-
-      if (hg > ag) {
-        table[home].won++; table[home].pts += 3;
-        table[away].lost++;
-      } else if (hg < ag) {
-        table[away].won++; table[away].pts += 3;
-        table[home].lost++;
-      } else {
-        table[home].draw++; table[home].pts++;
-        table[away].draw++; table[away].pts++;
-      }
-    }
-
-    standings = Object.values(table)
-      .sort((a, b) => b.pts - a.pts || (b.gf-b.ga) - (a.gf-a.ga) || b.gf - a.gf)
-      .map((t, i) => ({ ...t, pos: i+1 }));
-
-    if (standings.every(t => t.played === 0)) throw new Error('no finished matches yet');
   } catch(e) {
-    console.error('[Reysol] fetchStandings error:', e);
-    standingsError = true;
+    console.warn('[Reysol] standings scrape failed, using static:', e.message);
+    standings = STANDINGS_STATIC.map(t => ({...t}));
   }
   standingsLoading = false;
   if (activeTab === 'standings') render();
