@@ -10,30 +10,26 @@ const RSS_SOURCES = [
 
 // 対戦相手クラブの公式ドメイン（これらのURLの記事は除外）
 const OPPONENT_DOMAINS = [
-  'jefunited.co.jp',
-  'antlers.co.jp',
-  'fctokyo.co.jp',
-  'verdy.co.jp',
-  'frontale.co.jp',
-  'f-marinos.com',
-  'urawa-reds.co.jp',
-  'mito-hollyhock.net',
-  'zelvia.co.jp',
-  'gamba-osaka.net',
-  'cerezo.co.jp',
-  'vissel-kobe.co.jp',
-  'sanfrecce.co.jp',
-  'nagoya-grampus.jp',
-  'sagantosu.jp',
-  'shonan-bellmare.co.jp',
-  'avispa.co.jp',
-  'kyoto-sanga.co.jp',
-  'albirex.com',
-  'jubilo-iwata.co.jp',
-  'consadole.net',
-  'shimizu-spulse.co.jp',
-  'vvaren.co.jp',
+  'jefunited.co.jp', 'antlers.co.jp', 'fctokyo.co.jp', 'verdy.co.jp',
+  'frontale.co.jp', 'f-marinos.com', 'urawa-reds.co.jp', 'mito-hollyhock.net',
+  'zelvia.co.jp', 'gamba-osaka.net', 'cerezo.co.jp', 'vissel-kobe.co.jp',
+  'sanfrecce.co.jp', 'nagoya-grampus.jp', 'sagantosu.jp', 'shonan-bellmare.co.jp',
+  'avispa.co.jp', 'kyoto-sanga.co.jp', 'albirex.com', 'jubilo-iwata.co.jp',
+  'consadole.net', 'shimizu-spulse.co.jp', 'vvaren.co.jp',
 ];
+
+// 対戦相手目線のタイトルパターン
+const OPPONENT_TITLE_PATTERNS = [
+  /vs\.?\s*柏/i, /vs\.?\s*レイソル/i,
+  /柏レイソル戦/, /レイソル戦/,
+  /対\s*柏レイソル/, /対\s*柏$/,
+];
+
+function isOpponentArticle(url, title) {
+  if (OPPONENT_DOMAINS.some(d => url.includes(d))) return true;
+  if (OPPONENT_TITLE_PATTERNS.some(p => p.test(title))) return true;
+  return false;
+}
 
 // キャッシュ（Vercelのサーバーレス関数はインスタンスが再利用されることがある）
 let cache = null;
@@ -64,8 +60,7 @@ function parseRSS(xml, sourceName) {
     if (!title || !link) continue;
 
     // 対戦相手クラブ公式サイトの記事は除外
-    const isOpponent = OPPONENT_DOMAINS.some(domain => link.includes(domain));
-    if (isOpponent) continue;
+    if (isOpponentArticle(link, title)) continue;
 
     // 柏レイソル関連フィルタ（公式・Google News以外）
     const isReysol = sourceName === '柏レイソル公式' || sourceName === 'Google News'
