@@ -364,74 +364,48 @@ async function fetchStandings() {
   standingsError = false;
   if (activeTab === 'standings') render();
 
-  // 複数ソースを順番に試す
-  const sources = [
-    {
-      url: 'https://mobaj.net/2026/standings/j1',
-      parse: html => {
-        const m = html.match(/EAST[\s\S]{0,800}?<tbody>([\s\S]*?)<\/tbody>/i);
-        if (!m) throw new Error('EAST tbody not found');
-        return parseStandingsRows(m[1]);
-      }
-    },
-    {
-      url: 'https://www.jleague.jp/standings/j1/',
-      parse: html => {
-        // J.League公式の順位表（EASTグループ）
-        const m = html.match(/East[\s\S]{0,800}?<tbody[^>]*>([\s\S]*?)<\/tbody>/i)
-                || html.match(/<tbody[^>]*>([\s\S]*?)<\/tbody>/i);
-        if (!m) throw new Error('tbody not found');
-        return parseStandingsRows(m[1]);
-      }
-    },
-  ];
+  try {
+    // Claude API + web_search でmobaj.netから最新順位表を取得
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        system: `あなたはJリーグの順位表データを取得するアシスタントです。
+必ずJSON形式のみで回答してください。前置き・説明・マークダウン記号は一切不要です。
+以下の形式で返してください：
+{"east":[{"pos":1,"team":"チーム名","pts":10,"played":5,"won":3,"draw":0,"lost":2,"gf":7,"ga":4},...]}`,
+        messages: [{
+          role: 'user',
+          content: 'https://mobaj.net/2026/standings/j1 を参照して、2026年J1百年構想リーグのEASTグループの順位表を上記JSON形式で返してください。チーム名は日本語で。'
+        }]
+      })
+    });
 
-  function parseStandingsRows(tbodyHtml) {
-    const rows = tbodyHtml.match(/<tr[\s\S]*?<\/tr>/gi) || [];
-    const parsed = rows.map(row => {
-      const cells = (row.match(/<td[^>]*>([\s\S]*?)<\/td>/gi) || [])
-        .map(c => c.replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&#\d+;/g,'').replace(/\s+/g,' ').trim());
-      if (cells.length < 8) return null;
-      const pos  = parseInt(cells[0]);
-      const team = cells[1];
-      if (!pos || pos < 1 || pos > 20 || !team || team.length < 2) return null;
-      // 列構成が違う場合に対応（勝点が3列目 or 最後）
-      const pts    = parseInt(cells[2]) || parseInt(cells[cells.length-1]) || 0;
-      const played = parseInt(cells[3]) || 0;
-      const won    = parseInt(cells[4]) || 0;
-      const draw   = parseInt(cells[5]) || 0;
-      const lost   = parseInt(cells[6]) || 0;
-      const gf     = parseInt(cells[7]) || 0;
-      const ga     = parseInt(cells[8]) || 0;
-      return { pos, team, pts, played, won, draw, lost, gf, ga };
-    }).filter(Boolean);
-    if (parsed.length < 5) throw new Error('too few rows: ' + parsed.length);
-    return parsed;
-  }
+    const data = await res.json();
+    // テキストブロックを結合してJSONをパース
+    const text = (data.content || [])
+      .filter(b => b.type === 'text')
+      .map(b => b.text).join('');
+    const clean = text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
 
-  let success = false;
-  for (const src of sources) {
-    try {
-      const res = await fetch(
-        'https://api.allorigins.win/get?url=' + encodeURIComponent(src.url),
-        { signal: AbortSignal.timeout(8000) }
-      );
-      const json = await res.json();
-      const html = json.contents || '';
-      const parsed = src.parse(html);
-      console.log('[Reysol] standings from', src.url, parsed);
-      standings = parsed;
-      success = true;
-      break;
-    } catch(e) {
-      console.warn('[Reysol] standings source failed:', src.url, e.message);
+    if (parsed.east && parsed.east.length >= 5) {
+      standings = parsed.east;
+      console.log('[Reysol] standings via Claude API:', standings);
+    } else {
+      throw new Error('invalid response');
     }
-  }
-
-  if (!success) {
-    console.warn('[Reysol] all standings sources failed, using static data');
+  } catch(e) {
+    console.warn('[Reysol] Claude API standings failed:', e.message);
     standings = STANDINGS_STATIC.map(t => ({...t}));
   }
+
+  standingsLoading = false;
+  if (activeTab === 'standings') render();
+}
 
   standingsLoading = false;
   if (activeTab === 'standings') render();
