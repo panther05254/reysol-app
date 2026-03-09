@@ -8,6 +8,33 @@ const RSS_SOURCES = [
   { source: 'Google News',    url: 'https://news.google.com/rss/search?q=%E6%9F%8F%E3%83%AC%E3%82%A4%E3%82%BD%E3%83%AB&hl=ja&gl=JP&ceid=JP:ja' },
 ];
 
+// 対戦相手クラブの公式ドメイン（これらのURLの記事は除外）
+const OPPONENT_DOMAINS = [
+  'jefunited.co.jp',
+  'antlers.co.jp',
+  'fctokyo.co.jp',
+  'verdy.co.jp',
+  'frontale.co.jp',
+  'f-marinos.com',
+  'urawa-reds.co.jp',
+  'mito-hollyhock.net',
+  'zelvia.co.jp',
+  'gamba-osaka.net',
+  'cerezo.co.jp',
+  'vissel-kobe.co.jp',
+  'sanfrecce.co.jp',
+  'nagoya-grampus.jp',
+  'sagantosu.jp',
+  'shonan-bellmare.co.jp',
+  'avispa.co.jp',
+  'kyoto-sanga.co.jp',
+  'albirex.com',
+  'jubilo-iwata.co.jp',
+  'consadole.net',
+  'shimizu-spulse.co.jp',
+  'vvaren.co.jp',
+];
+
 // キャッシュ（Vercelのサーバーレス関数はインスタンスが再利用されることがある）
 let cache = null;
 let cacheTime = 0;
@@ -35,6 +62,11 @@ function parseRSS(xml, sourceName) {
       ?.replace(/<[^>]+>/g, '').replace(/&[a-z#0-9]+;/gi, ' ').trim().slice(0, 120) || '';
 
     if (!title || !link) continue;
+
+    // 対戦相手クラブ公式サイトの記事は除外
+    const isOpponent = OPPONENT_DOMAINS.some(domain => link.includes(domain));
+    if (isOpponent) continue;
+
     // 柏レイソル関連フィルタ（公式・Google News以外）
     const isReysol = sourceName === '柏レイソル公式' || sourceName === 'Google News'
       || title.includes('柏') || title.includes('レイソル') || title.includes('Reysol')
