@@ -163,6 +163,7 @@ const Y = '#FFD700';
 // ── DATA ──────────────────────────────────────────────────────────────────────
 // matches と standings はAPI取得で動的に設定
 let matches = [];
+window.matches = matches;
 let standings = [];
 let matchesLoading = false;
 let standingsLoading = false;
@@ -356,6 +357,7 @@ async function fetchMatches() {
       if (a.status !== 'finished' && b.status !== 'finished') return aD - bD;
       return a.status === 'finished' ? -1 : 1;
     });
+    window.matches = matches; // 採点機能から参照できるよう同期
 
   } catch(e) {
     console.error('[Reysol] fetchMatches error:', e);
