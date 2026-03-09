@@ -1307,6 +1307,8 @@ function renderRatingSection() {
   return '';
 }
 
+// ── RENDER COMMUNITY ──────────────────────────────────────────────────────────
+window.renderCommunity = function() {
   subscribePosts();
   return `<div id="community-root"></div>`;
 };
@@ -1451,7 +1453,8 @@ function renderCommunityDOM() {
 
     ${communityPosts.length === 0
       ? `<div style="text-align:center;padding:32px;color:#444;font-size:13px">まだ投稿がありません。<br>最初の投稿をしてみよう！</div>`
-      : communityPosts.map(p => renderPostCard(p)).join('')}`}`;
+      : communityPosts.map(p => renderPostCard(p)).join('')}
+    `}`;
 
   const ta = document.getElementById('post-input');
   const cc = document.getElementById('char-count');
