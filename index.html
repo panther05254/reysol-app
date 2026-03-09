@@ -522,9 +522,24 @@ const OPPONENT_DOMAINS = [
   'avispa.co.jp', 'kyoto-sanga.co.jp', 'albirex.com', 'jubilo-iwata.co.jp',
   'consadole.net', 'shimizu-spulse.co.jp', 'vvaren.co.jp',
 ];
-function isOpponentUrl(url) {
-  try { return OPPONENT_DOMAINS.some(d => new URL(url).hostname.includes(d)); }
-  catch { return false; }
+
+// 対戦相手目線のタイトルパターン（「vs 柏レイソル」など相手クラブが主語の記事）
+const OPPONENT_TITLE_PATTERNS = [
+  /vs\.?\s*柏/i, /vs\.?\s*レイソル/i,
+  /柏レイソル戦/, /レイソル戦/,
+  /対\s*柏レイソル/, /対\s*柏$/,
+];
+
+function isOpponentArticle(url, title) {
+  // URLドメインチェック
+  try {
+    if (OPPONENT_DOMAINS.some(d => new URL(url).hostname.includes(d))) return true;
+  } catch {}
+  // URLに直接ドメイン文字列が含まれる場合（Googleニュースのリダイレクト先など）
+  if (OPPONENT_DOMAINS.some(d => url.includes(d))) return true;
+  // タイトルパターンチェック（ただし柏レイソル公式は除外しない）
+  if (OPPONENT_TITLE_PATTERNS.some(p => p.test(title))) return true;
+  return false;
 }
 
 async function fetchRSS() {
@@ -538,7 +553,7 @@ async function fetchRSS() {
 
     if (data.items && data.items.length > 0) {
       rssNews = data.items
-        .filter(item => !isOpponentUrl(item.url))
+        .filter(item => !isOpponentArticle(item.url, item.title))
         .map((item, i) => {
         const pubDate = new Date(item.pubDate);
         const dateStr = isNaN(pubDate) ? '' :
