@@ -1117,29 +1117,33 @@ let allRatings = {};         // { uid: { nick, players:{name:{score,comment}}, t
 let myRating = null;         // 自分の採点データ
 let unsubRatings = null;
 
-// 柏レイソル 2026年シーズン登録選手
+// 柏レイソル 2026年シーズン登録選手（公式サイト準拠・背番号順）
 const REYSOL_PLAYERS = [
-  { pos:'GK', name:'松本健太' },
-  { pos:'GK', name:'佐々木雅士' },
+  { pos:'GK', name:'猿田遥己' },
+  { pos:'GK', name:'小島亨介' },
+  { pos:'GK', name:'永井堅梧' },
+  { pos:'DF', name:'三丸拡' },
   { pos:'DF', name:'古賀太陽' },
   { pos:'DF', name:'犬飼智也' },
+  { pos:'DF', name:'野田裕喜' },
   { pos:'DF', name:'杉岡大暉' },
-  { pos:'DF', name:'三丸拡' },
-  { pos:'DF', name:'関根大輝' },
-  { pos:'DF', name:'飯田航平' },
-  { pos:'MF', name:'熊坂ジョアン直哉' },
-  { pos:'MF', name:'中川敦瑛' },
-  { pos:'MF', name:'山内日向汰' },
+  { pos:'DF', name:'成瀬竣平' },
+  { pos:'MF', name:'山田雄士' },
+  { pos:'MF', name:'小泉佳穂' },
+  { pos:'MF', name:'渡井理己' },
+  { pos:'MF', name:'大久保智明' },
+  { pos:'MF', name:'手塚康平' },
+  { pos:'MF', name:'仲間隼斗' },
+  { pos:'MF', name:'瀬川祐輔' },
   { pos:'MF', name:'小西雄大' },
+  { pos:'MF', name:'長南開史' },
+  { pos:'MF', name:'久保藤次郎' },
+  { pos:'MF', name:'熊坂光希' },
   { pos:'MF', name:'戸嶋祥郎' },
-  { pos:'MF', name:'大嶋春樹' },
-  { pos:'MF', name:'木下康介' },
-  { pos:'FW', name:'垣田裕暉' },
   { pos:'FW', name:'細谷真大' },
   { pos:'FW', name:'小見洋太' },
-  { pos:'FW', name:'瀬川祐輔' },
   { pos:'FW', name:'汰木康也' },
-  { pos:'FW', name:'久保藤次郎' },
+  { pos:'FW', name:'垣田裕暉' },
 ];
 
 function getFinishedMatches() {
