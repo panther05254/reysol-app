@@ -312,41 +312,33 @@ async function fetchMatches() {
       };
     });
 
-    // ── Step 2: TheSportsDB で直近試合のスコアを補完 ──────────────
+    // ── Step 2: /api/matches でスコアを補完 ──────────────────────
     try {
-      // 直近15試合 + 次の試合 の2エンドポイントを並列取得
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 6000);
-      const [r1, r2] = await Promise.all([
-        fetch(`${TSDB}/eventslast.php?id=${KASHIWA_TSDB}`, { signal: ctrl.signal }),
-        fetch(`${TSDB}/eventsnext.php?id=${KASHIWA_TSDB}`, { signal: ctrl.signal }),
-      ]);
-      clearTimeout(timer);
-      const [d1, d2] = await Promise.all([r1.json(), r2.json()]);
-      const apiEvents = [...(d1.results || []), ...(d2.events || [])];
+      const res = await fetch('/api/matches', { signal: AbortSignal.timeout(8000) });
+      const data = await res.json();
+      const apiEvents = data.events || [];
 
       let updatedCount = 0;
       for (const e of apiEvents) {
-        const scored = e.intHomeScore != null && e.intHomeScore !== '' && e.intAwayScore != null;
-        const match = base.find(m => m.rawDate === e.dateEvent);
+        const match = base.find(m => m.rawDate === e.date);
         if (!match) continue;
-        if (scored && match.homeScore === null) {
-          match.homeScore = parseInt(e.intHomeScore);
-          match.awayScore = parseInt(e.intAwayScore);
+        if (e.homeScore !== null && match.homeScore === null) {
+          match.homeScore = e.homeScore;
+          match.awayScore = e.awayScore;
           match.status = 'finished';
           updatedCount++;
         }
         // 次の試合のキックオフ時刻も更新
-        if (!scored && e.strTime && e.strTime !== '00:00:00') {
-          const jst = new Date(e.dateEvent + 'T' + e.strTime + 'Z');
-          const h = String((jst.getUTCHours() + 9) % 24).padStart(2,'0');
+        if (e.homeScore === null && e.time && e.time !== '00:00:00') {
+          const jst = new Date(e.date + 'T' + e.time + 'Z');
+          const h  = String((jst.getUTCHours() + 9) % 24).padStart(2,'0');
           const mi = String(jst.getUTCMinutes()).padStart(2,'0');
           match.time = `${h}:${mi}`;
         }
       }
-      console.log(`[Reysol] TheSportsDB: ${apiEvents.length}件取得, ${updatedCount}件スコア更新`);
+      console.log(`[Reysol] /api/matches: ${apiEvents.length}件取得, ${updatedCount}件スコア更新`);
     } catch(err) {
-      console.warn('[Reysol] TheSportsDB failed:', err.message);
+      console.warn('[Reysol] /api/matches failed:', err.message);
     }
 
     // ── Step 3: 試合後なのにスコアがない場合は「結果取得中」表示 ──
@@ -395,60 +387,21 @@ async function fetchStandings() {
   if (activeTab === 'standings') render();
 
   try {
-    // corsproxy.io 経由でmobaj.netをフェッチ（サーバーサイドレンダリング済みHTML）
-    const proxies = [
-      `https://corsproxy.io/?url=${encodeURIComponent('https://mobaj.net/2026/standings/j1')}`,
-      `https://api.codetabs.com/v1/proxy?quest=https://mobaj.net/2026/standings/j1`,
-    ];
+    const res = await fetch('/api/standings', { signal: AbortSignal.timeout(12000) });
+    const data = await res.json();
 
-    let html = '';
-    for (const proxyUrl of proxies) {
-      try {
-        const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(7000) });
-        const text = await res.text();
-        if (text.includes('鹿島') || text.includes('EAST') || text.includes('tbody')) {
-          html = text;
-          break;
-        }
-      } catch(e) { console.warn('[Reysol] proxy failed:', proxyUrl); }
-    }
-
-    if (!html) throw new Error('no html from proxies');
-
-    // EASTテーブルのtbodyを抽出
-    const m = html.match(/EAST[\s\S]{0,1000}?<tbody>([\s\S]*?)<\/tbody>/i)
-           || html.match(/<tbody>([\s\S]*?)<\/tbody>/i);
-    if (!m) throw new Error('tbody not found');
-
-    const rows = m[1].match(/<tr[\s\S]*?<\/tr>/gi) || [];
-    const parsed = rows.map(row => {
-      const cells = (row.match(/<td[^>]*>([\s\S]*?)<\/td>/gi) || [])
-        .map(c => c.replace(/<[^>]+>/g,'').replace(/&[a-z]+;/g,'').replace(/\s+/g,' ').trim());
-      if (cells.length < 8) return null;
-      const pos = parseInt(cells[0]);
-      const team = cells[1];
-      if (!pos || pos < 1 || pos > 12 || !team || team.length < 2) return null;
-      return {
-        pos,  team,
-        pts:    parseInt(cells[2]) || 0,
-        played: parseInt(cells[3]) || 0,
-        won:    parseInt(cells[4]) || 0,
-        draw:   parseInt(cells[5]) || 0,
-        lost:   parseInt(cells[6]) || 0,
-        gf:     parseInt(cells[7]) || 0,
-        ga:     parseInt(cells[8]) || 0,
-      };
-    }).filter(Boolean);
-
-    if (parsed.length >= 5) {
-      standings = parsed;
-      console.log('[Reysol] standings fetched:', parsed.length, 'teams');
+    if (data.standings && data.standings.length >= 5) {
+      standings = data.standings;
+      console.log(`[Reysol] /api/standings: ${standings.length}チーム取得 (source: ${data.source})`);
+      // sourceをUIに反映するため保持
+      window._standingsSource = data.source;
     } else {
-      throw new Error('too few rows: ' + parsed.length);
+      throw new Error('invalid data');
     }
   } catch(e) {
-    console.warn('[Reysol] fetchStandings failed, using static:', e.message);
+    console.warn('[Reysol] /api/standings failed, using static:', e.message);
     standings = STANDINGS_STATIC.map(t => ({...t}));
+    window._standingsSource = 'static';
   }
 
   standingsLoading = false;
@@ -561,86 +514,49 @@ const RSS_SOURCES = [
   { url: 'https://sportsnavi.ht.kyodo-d.jp/soccer/jleague/j1/rss/kashiwa.xml', source: 'スポーツナビ', category: 'ニュース', color: '#e53935', kashiwaOnly: true },
 ];
 
-// RSSをプロキシ経由で取得（複数プロキシを順番に試す）
-async function fetchRSSUrl(url) {
-  const proxies = [
-    u => `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(u)}&count=30`,
-    u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
-  ];
-  for (const proxy of proxies) {
-    try {
-      const res = await fetch(proxy(url), { signal: AbortSignal.timeout(6000) });
-      const data = await res.json();
-      // rss2json形式
-      if (data.status === 'ok' && data.items) return { items: data.items, format: 'rss2json' };
-      // allorigins形式 → XMLをパース
-      if (data.contents) {
-        const parser = new DOMParser();
-        const xml = parser.parseFromString(data.contents, 'text/xml');
-        const items = [...xml.querySelectorAll('item')].map(el => ({
-          title:       el.querySelector('title')?.textContent || '',
-          link:        el.querySelector('link')?.textContent || '',
-          pubDate:     el.querySelector('pubDate')?.textContent || '',
-          description: el.querySelector('description')?.textContent || '',
-        }));
-        if (items.length > 0) return { items, format: 'xml' };
-      }
-    } catch(e) { /* 次のプロキシへ */ }
-  }
-  return null;
-}
-
 async function fetchRSS() {
   rssLoading = true;
   rssError = false;
   if (activeTab === 'news') render();
 
-  const allItems = [];
+  try {
+    const res = await fetch('/api/news', { signal: AbortSignal.timeout(12000) });
+    const data = await res.json();
 
-  await Promise.all(RSS_SOURCES.map(async (src) => {
-    try {
-      const result = await fetchRSSUrl(src.url);
-      if (!result) return;
-      result.items.forEach(item => {
-        const title = item.title || '';
-        const desc  = item.description || item.content || '';
-        const text  = (title + ' ' + desc).toLowerCase();
-        const isReysol = src.kashiwaOnly
-          || text.includes('柏') || text.includes('reysol') || text.includes('レイソル')
-          || text.includes('kashiwa');
-        if (!isReysol) return;
+    if (data.items && data.items.length > 0) {
+      rssNews = data.items.map((item, i) => {
         const pubDate = new Date(item.pubDate);
-        if (isNaN(pubDate)) return;
-        const dateStr = `${pubDate.getFullYear()}/${String(pubDate.getMonth()+1).padStart(2,'0')}/${String(pubDate.getDate()).padStart(2,'0')}`;
-        const summary = desc.replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim().slice(0, 120);
-        allItems.push({
-          id: item.link || title,
-          category: src.category,
-          color: src.color,
-          source: src.source,
+        const dateStr = isNaN(pubDate) ? '' :
+          `${pubDate.getFullYear()}/${String(pubDate.getMonth()+1).padStart(2,'0')}/${String(pubDate.getDate()).padStart(2,'0')}`;
+        // ソースごとのカテゴリ・カラー
+        const colorMap = {
+          '柏レイソル公式': { category: 'クラブ情報', color: '#FFD700' },
+          'ゲキサカ':       { category: 'ニュース',   color: '#e91e63' },
+          'Yahoo!スポーツ': { category: 'ニュース',   color: '#6a0dad' },
+          'Google News':    { category: 'ニュース',   color: '#1a73e8' },
+          'スポーツナビ':   { category: 'ニュース',   color: '#e53935' },
+        };
+        const meta = colorMap[item.source] || { category: 'ニュース', color: '#888' };
+        return {
+          id: i,
+          category: meta.category,
+          color: meta.color,
+          source: item.source,
           date: dateStr,
           pubDate,
-          title,
-          summary,
-          url: item.link || '#',
+          title: item.title,
+          summary: item.summary || '',
+          url: item.url || '#',
           hot: false,
-        });
+        };
       });
-    } catch(e) { console.warn('[Reysol] RSS failed:', src.source, e.message); }
-  }));
-
-  if (allItems.length > 0) {
-    // 重複タイトル除去 & 日付降順
-    const seen = new Set();
-    allItems.sort((a, b) => b.pubDate - a.pubDate);
-    rssNews = allItems.filter(item => {
-      const key = item.title.slice(0, 30);
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    }).slice(0, 50);
-    rssError = false;
-  } else {
+      rssError = false;
+      console.log(`[Reysol] /api/news: ${rssNews.length}件取得 (cached: ${data.cached})`);
+    } else {
+      throw new Error('no items');
+    }
+  } catch(e) {
+    console.warn('[Reysol] /api/news failed, using static:', e.message);
     rssNews = news;
     rssError = true;
   }
@@ -648,6 +564,7 @@ async function fetchRSS() {
   rssLoading = false;
   if (activeTab === 'news') render();
 }
+
 
 // ── BANNER ────────────────────────────────────────────────────────────────────
 function renderBanner() {
@@ -928,12 +845,16 @@ function renderStandings() {
       <div style="color:#888;font-size:13px;margin-bottom:16px">データの取得に失敗しました</div>
       <button onclick="fetchStandings()" style="background:var(--y);color:#1a1a1a;font-weight:900;font-size:13px;padding:10px 24px;border-radius:10px;border:none;cursor:pointer;font-family:inherit">🔄 再取得</button>
     </div>`;
-  const isStatic = standings === STANDINGS_STATIC || standings.every(r => STANDINGS_STATIC.some(s => s.team === r.team && s.pts === r.pts));
+  const src = window._standingsSource || 'static';
+  const isStatic = src === 'static';
+  const statusLabel = src === 'live' ? '✅ 最新データ取得済み'
+    : src === 'cache' ? '🕐 キャッシュデータ'
+    : '⚠️ 静的データ（第5節終了時点）';
   return `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
       <div>
         <div style="font-size:11px;color:#888">🗾 EASTグループ（柏レイソル所属）</div>
-        <div style="font-size:10px;margin-top:2px;color:${isStatic?'#666':'#4caf50'}">${isStatic?'⚠️ 静的データ（第5節終了時点）':'✅ 最新データ取得済み'}</div>
+        <div style="font-size:10px;margin-top:2px;color:${isStatic?'#666':src==='cache'?'#888':'#4caf50'}">${statusLabel}</div>
       </div>
       <button onclick="fetchStandings()" style="background:none;border:1px solid #333;border-radius:8px;padding:4px 10px;color:#888;font-size:11px;cursor:pointer;font-family:inherit">🔄 更新</button>
     </div>
