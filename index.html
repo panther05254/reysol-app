@@ -1290,6 +1290,12 @@ function renderRatingTab() {
             const myScore = myRating?.players?.[p.name]?.score;
             const myComment = myRating?.players?.[p.name]?.comment;
             const bar = avgScore ? Math.round((avgScore / 10) * 100) : 0;
+
+            // 他のユーザーのコメント（スコアまたはコメントがあるもの）
+            const othersComments = Object.values(allRatings)
+              .filter(r => r.players?.[p.name]?.comment)
+              .map(r => ({ nick: r.nick, score: r.players[p.name].score, comment: r.players[p.name].comment }));
+
             return `
             <div style="background:var(--card);border-radius:12px;padding:12px;margin-bottom:8px;border:1px solid var(--border)">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
@@ -1300,10 +1306,17 @@ function renderRatingTab() {
                 </div>
               </div>
               ${avgScore ? `
-                <div style="background:#222;border-radius:4px;height:4px;margin-bottom:6px">
+                <div style="background:#222;border-radius:4px;height:4px;margin-bottom:${othersComments.length>0?'10':'6'}px">
                   <div style="background:${avgScore>=8?'#4caf50':avgScore>=6?'var(--y)':'#ff9800'};height:4px;border-radius:4px;width:${bar}%;transition:width 0.4s"></div>
                 </div>` : ''}
-              ${myComment ? `<div style="color:#666;font-size:11px;font-style:italic">"${escapeHtml(myComment)}"</div>` : ''}
+              ${othersComments.length > 0 ? `
+                <div style="display:flex;flex-direction:column;gap:5px">
+                  ${othersComments.map(c => `
+                    <div style="display:flex;align-items:baseline;gap:6px">
+                      <span style="color:#555;font-size:10px;white-space:nowrap;flex-shrink:0">${escapeHtml(c.nick||'匿名')}${c.score?` <b style="color:var(--y)">${c.score}</b>`:''}</span>
+                      <span style="color:#777;font-size:12px;font-style:italic;word-break:break-word">"${escapeHtml(c.comment)}"</span>
+                    </div>`).join('')}
+                </div>` : ''}
             </div>`;
           }).join('')}
         </div>`;
