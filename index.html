@@ -513,6 +513,20 @@ const RSS_SOURCES = [
   { url: 'https://sportsnavi.ht.kyodo-d.jp/soccer/jleague/j1/rss/kashiwa.xml', source: 'スポーツナビ', category: 'ニュース', color: '#e53935', kashiwaOnly: true },
 ];
 
+// 対戦相手クラブ公式ドメイン（フロントでも二重チェック）
+const OPPONENT_DOMAINS = [
+  'jefunited.co.jp', 'antlers.co.jp', 'fctokyo.co.jp', 'verdy.co.jp',
+  'frontale.co.jp', 'f-marinos.com', 'urawa-reds.co.jp', 'mito-hollyhock.net',
+  'zelvia.co.jp', 'gamba-osaka.net', 'cerezo.co.jp', 'vissel-kobe.co.jp',
+  'sanfrecce.co.jp', 'nagoya-grampus.jp', 'sagantosu.jp', 'shonan-bellmare.co.jp',
+  'avispa.co.jp', 'kyoto-sanga.co.jp', 'albirex.com', 'jubilo-iwata.co.jp',
+  'consadole.net', 'shimizu-spulse.co.jp', 'vvaren.co.jp',
+];
+function isOpponentUrl(url) {
+  try { return OPPONENT_DOMAINS.some(d => new URL(url).hostname.includes(d)); }
+  catch { return false; }
+}
+
 async function fetchRSS() {
   rssLoading = true;
   rssError = false;
@@ -523,7 +537,9 @@ async function fetchRSS() {
     const data = await res.json();
 
     if (data.items && data.items.length > 0) {
-      rssNews = data.items.map((item, i) => {
+      rssNews = data.items
+        .filter(item => !isOpponentUrl(item.url))
+        .map((item, i) => {
         const pubDate = new Date(item.pubDate);
         const dateStr = isNaN(pubDate) ? '' :
           `${pubDate.getFullYear()}/${String(pubDate.getMonth()+1).padStart(2,'0')}/${String(pubDate.getDate()).padStart(2,'0')}`;
