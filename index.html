@@ -493,7 +493,6 @@ let chantFilter = 'team';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 let activeTab = 'news';
-let newsFilter = 'すべて';
 let expandedMatch = null;
 let bbsPage = 1;
 let rssNews = [];
@@ -682,9 +681,7 @@ function renderNav() {
 
 // ── TABS ──────────────────────────────────────────────────────────────────────
 function renderNews() {
-  const categories = ['すべて','試合結果','マッチコラム','コラム','インタビュー','移籍情報','クラブ情報'];
   const displayNews = rssNews.length > 0 ? rssNews : news;
-  const filtered = newsFilter === 'すべて' ? displayNews : displayNews.filter(n => n.category === newsFilter);
 
   if (rssLoading) return `
     <div style="text-align:center;padding:40px 16px">
@@ -700,15 +697,10 @@ function renderNews() {
       </div>
       <button onclick="fetchRSS()" style="background:none;border:1px solid #333;border-radius:8px;padding:4px 10px;color:#888;font-size:11px;cursor:pointer;font-family:inherit">🔄 更新</button>
     </div>
-    <div class="cat-chips">
-      ${categories.map(c => `<button class="chip ${newsFilter===c?'active':''}" onclick="setNewsFilter('${c}')">${c}</button>`).join('')}
-    </div>
-    ${filtered.length === 0 ? `<div style="text-align:center;padding:32px;color:#555">該当する記事がありません</div>` : ''}
-    ${filtered.map((a,i) => `
+    ${displayNews.map((a,i) => `
       <a href="${a.url}" target="_blank" class="card ${a.hot?'hot':''} fade-in" style="animation-delay:${i*0.03}s;display:block;text-decoration:none">
         ${a.hot ? '<div style="display:flex;justify-content:flex-end;margin-bottom:4px"><span class="hot-badge">🔥 HOT</span></div>' : ''}
         <div class="news-meta">
-          <span class="cat-tag" style="color:${a.color};background:${a.color}22;border-color:${a.color}55">${a.category}</span>
           <span class="news-source">${a.source}</span>
           <span class="news-date">${a.date}</span>
         </div>
@@ -919,11 +911,6 @@ function setTab(key) {
   render();
   document.getElementById('content').scrollTop = 0;
   if (key === 'community') setTimeout(() => { if (window.renderCommunityDOM) window.renderCommunityDOM(); }, 50);
-}
-
-function setNewsFilter(cat) {
-  newsFilter = cat;
-  render();
 }
 
 function setChantFilter(f) {
