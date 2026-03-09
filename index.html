@@ -375,7 +375,7 @@ async function fetchMatches() {
 }
 
 // 東グループ 10チーム（固定）
-// 第4節終了時点の静的データ（フォールバック用）
+// 第5節終了時点の静的データ（フォールバック用）
 const STANDINGS_STATIC = [
   { pos:1,  team:'鹿島アントラーズ',   played:5, won:4, draw:0, lost:1, gf:9,  ga:3,  pts:13 },
   { pos:2,  team:'浦和レッズ',         played:5, won:3, draw:0, lost:2, gf:9,  ga:4,  pts:10 },
@@ -933,7 +933,7 @@ function renderStandings() {
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
       <div>
         <div style="font-size:11px;color:#888">🗾 EASTグループ（柏レイソル所属）</div>
-        <div style="font-size:10px;margin-top:2px;color:${isStatic?'#666':'#4caf50'}">${isStatic?'⚠️ 静的データ（第4節終了時点）':'✅ 最新データ取得済み'}</div>
+        <div style="font-size:10px;margin-top:2px;color:${isStatic?'#666':'#4caf50'}">${isStatic?'⚠️ 静的データ（第5節終了時点）':'✅ 最新データ取得済み'}</div>
       </div>
       <button onclick="fetchStandings()" style="background:none;border:1px solid #333;border-radius:8px;padding:4px 10px;color:#888;font-size:11px;cursor:pointer;font-family:inherit">🔄 更新</button>
     </div>
