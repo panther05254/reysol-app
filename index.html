@@ -606,28 +606,77 @@ function renderBanner() {
   const showBanner = activeTab !== 'board';
   const bannerEl = document.getElementById('banner');
   if (!showBanner) { bannerEl.innerHTML = ''; return; }
-  bannerEl.innerHTML = `
-    <div class="banner fade-in">
-      <div class="banner-label">📅 NEXT MATCH — J1百年構想リーグ EAST 第5節</div>
-      <div class="banner-row">
-        <div style="flex:1;text-align:center">
-          <div class="banner-team-sub">HOME</div>
-          <div class="banner-team">ジェフ千葉</div>
+
+  // 今日以降で最初の試合を「次の試合」とする
+  const now = new Date();
+  const next = KASHIWA_SCHEDULE.find(s => {
+    const dt = new Date(s.rawDate + 'T' + s.time + ':00+09:00');
+    return dt > now;
+  });
+
+  // 直近の終了試合（スコアあり）
+  const last = [...KASHIWA_SCHEDULE].reverse().find(s => s.homeScore !== undefined);
+
+  if (!next && !last) { bannerEl.innerHTML = ''; return; }
+
+  if (next) {
+    // 次の試合バナー
+    const dt = new Date(next.rawDate + 'T' + next.time + ':00+09:00');
+    const days = ['日','月','火','水','木','金','土'];
+    const dateLabel = `${dt.getMonth()+1}/${dt.getDate()}(${days[dt.getDay()]}) ${next.time}`;
+    const isHome = next.home === '柏レイソル';
+    bannerEl.innerHTML = `
+      <div class="banner fade-in">
+        <div class="banner-label">📅 NEXT MATCH — ${next.round} J1百年構想リーグ</div>
+        <div class="banner-row">
+          <div style="flex:1;text-align:center">
+            <div class="banner-team-sub">HOME</div>
+            <div class="banner-team" ${isHome?'style="color:var(--y)"':''}>${next.home}</div>
+          </div>
+          <div style="text-align:center;padding:0 12px">
+            <div class="banner-vs">VS</div>
+            <div class="banner-date">${dateLabel}</div>
+          </div>
+          <div style="flex:1;text-align:center">
+            <div class="banner-team-sub">AWAY</div>
+            <div class="banner-team" ${!isHome?'style="color:var(--y)"':''}>${next.away}</div>
+          </div>
         </div>
-        <div style="text-align:center;padding:0 12px">
-          <div class="banner-vs">VS</div>
-          <div class="banner-date">3/7(土) 13:00</div>
+        <div class="banner-btns">
+          <a href="https://www.reysol.co.jp/ticket/" target="_blank" class="banner-btn banner-btn-y">チケット購入</a>
+          <a href="https://www.reysol.co.jp/game/results/" target="_blank" class="banner-btn banner-btn-ghost">試合情報詳細</a>
         </div>
-        <div style="flex:1;text-align:center">
-          <div class="banner-team-sub">AWAY</div>
-          <div class="banner-team" style="color:var(--y)">柏レイソル</div>
+      </div>`;
+  } else {
+    // 全試合終了後は最終節の結果を表示
+    const isHome = last.home === '柏レイソル';
+    const reysolScore = isHome ? last.homeScore : last.awayScore;
+    const oppScore   = isHome ? last.awayScore  : last.homeScore;
+    const opponent   = isHome ? last.away : last.home;
+    const result     = reysolScore > oppScore ? '勝利 🎉' : reysolScore < oppScore ? '敗戦' : '引き分け';
+    bannerEl.innerHTML = `
+      <div class="banner fade-in">
+        <div class="banner-label">⚽ LAST MATCH — ${last.round} J1百年構想リーグ</div>
+        <div class="banner-row">
+          <div style="flex:1;text-align:center">
+            <div class="banner-team-sub">${isHome ? 'HOME' : 'AWAY'}</div>
+            <div class="banner-team" style="color:var(--y)">柏レイソル</div>
+          </div>
+          <div style="text-align:center;padding:0 12px">
+            <div style="font-family:'Bebas Neue';font-size:28px;letter-spacing:4px">
+              <span style="color:var(--y)">${reysolScore}</span>
+              <span style="color:#555"> - </span>
+              <span style="color:#fff">${oppScore}</span>
+            </div>
+            <div class="banner-date">${result}</div>
+          </div>
+          <div style="flex:1;text-align:center">
+            <div class="banner-team-sub">${!isHome ? 'HOME' : 'AWAY'}</div>
+            <div class="banner-team">${opponent}</div>
+          </div>
         </div>
-      </div>
-      <div class="banner-btns">
-        <a href="https://www.reysol.co.jp/ticket/" target="_blank" class="banner-btn banner-btn-y">チケット購入</a>
-        <a href="https://www.reysol.co.jp/game/results/" target="_blank" class="banner-btn banner-btn-ghost">試合情報詳細</a>
-      </div>
-    </div>`;
+      </div>`;
+  }
 }
 
 // ── TAB BAR ───────────────────────────────────────────────────────────────────
