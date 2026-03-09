@@ -363,46 +363,76 @@ async function fetchStandings() {
   standingsLoading = true;
   standingsError = false;
   if (activeTab === 'standings') render();
-  try {
-    // allorigins.win プロキシ経由でmobaj.netをスクレイピング
-    const url = 'https://mobaj.net/2026/standings/j1';
-    const res = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent(url));
-    const json = await res.json();
-    const html = json.contents || '';
 
-    // EASTテーブルのtbodyを抽出
-    const tbodyMatch = html.match(/EAST[\s\S]{0,500}?<tbody>([\s\S]*?)<\/tbody>/i);
-    if (!tbodyMatch) throw new Error('EAST table not found');
-    const rows = tbodyMatch[1].match(/<tr[\s\S]*?<\/tr>/gi) || [];
+  // 複数ソースを順番に試す
+  const sources = [
+    {
+      url: 'https://mobaj.net/2026/standings/j1',
+      parse: html => {
+        const m = html.match(/EAST[\s\S]{0,800}?<tbody>([\s\S]*?)<\/tbody>/i);
+        if (!m) throw new Error('EAST tbody not found');
+        return parseStandingsRows(m[1]);
+      }
+    },
+    {
+      url: 'https://www.jleague.jp/standings/j1/',
+      parse: html => {
+        // J.League公式の順位表（EASTグループ）
+        const m = html.match(/East[\s\S]{0,800}?<tbody[^>]*>([\s\S]*?)<\/tbody>/i)
+                || html.match(/<tbody[^>]*>([\s\S]*?)<\/tbody>/i);
+        if (!m) throw new Error('tbody not found');
+        return parseStandingsRows(m[1]);
+      }
+    },
+  ];
 
+  function parseStandingsRows(tbodyHtml) {
+    const rows = tbodyHtml.match(/<tr[\s\S]*?<\/tr>/gi) || [];
     const parsed = rows.map(row => {
       const cells = (row.match(/<td[^>]*>([\s\S]*?)<\/td>/gi) || [])
-        .map(c => c.replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&#\d+;/g,'').trim());
-      if (cells.length < 9) return null;
-      // cells: [順位, クラブ, 勝点, 試合, 勝, PK勝, 負, PK負, 得点, 失点, 得失差]
-      return {
-        pos:    parseInt(cells[0]) || 0,
-        team:   cells[1],
-        pts:    parseInt(cells[2]) || 0,
-        played: parseInt(cells[3]) || 0,
-        won:    parseInt(cells[4]) || 0,
-        draw:   parseInt(cells[6]) || 0,
-        lost:   (parseInt(cells[5])||0) + (parseInt(cells[6])||0),
-        gf:     parseInt(cells[7] !== undefined ? cells[8] : cells[7]) || 0,
-        ga:     parseInt(cells[7] !== undefined ? cells[9] : cells[8]) || 0,
-      };
-    }).filter(r => r && r.pos > 0 && r.team.length > 1);
+        .map(c => c.replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&#\d+;/g,'').replace(/\s+/g,' ').trim());
+      if (cells.length < 8) return null;
+      const pos  = parseInt(cells[0]);
+      const team = cells[1];
+      if (!pos || pos < 1 || pos > 20 || !team || team.length < 2) return null;
+      // 列構成が違う場合に対応（勝点が3列目 or 最後）
+      const pts    = parseInt(cells[2]) || parseInt(cells[cells.length-1]) || 0;
+      const played = parseInt(cells[3]) || 0;
+      const won    = parseInt(cells[4]) || 0;
+      const draw   = parseInt(cells[5]) || 0;
+      const lost   = parseInt(cells[6]) || 0;
+      const gf     = parseInt(cells[7]) || 0;
+      const ga     = parseInt(cells[8]) || 0;
+      return { pos, team, pts, played, won, draw, lost, gf, ga };
+    }).filter(Boolean);
+    if (parsed.length < 5) throw new Error('too few rows: ' + parsed.length);
+    return parsed;
+  }
 
-    console.log('[Reysol] scraped standings:', parsed);
-    if (parsed.length >= 5) {
+  let success = false;
+  for (const src of sources) {
+    try {
+      const res = await fetch(
+        'https://api.allorigins.win/get?url=' + encodeURIComponent(src.url),
+        { signal: AbortSignal.timeout(8000) }
+      );
+      const json = await res.json();
+      const html = json.contents || '';
+      const parsed = src.parse(html);
+      console.log('[Reysol] standings from', src.url, parsed);
       standings = parsed;
-    } else {
-      throw new Error('too few rows: ' + parsed.length);
+      success = true;
+      break;
+    } catch(e) {
+      console.warn('[Reysol] standings source failed:', src.url, e.message);
     }
-  } catch(e) {
-    console.warn('[Reysol] standings scrape failed, using static:', e.message);
+  }
+
+  if (!success) {
+    console.warn('[Reysol] all standings sources failed, using static data');
     standings = STANDINGS_STATIC.map(t => ({...t}));
   }
+
   standingsLoading = false;
   if (activeTab === 'standings') render();
 }
@@ -881,9 +911,13 @@ function renderStandings() {
       <div style="color:#888;font-size:13px;margin-bottom:16px">データの取得に失敗しました</div>
       <button onclick="fetchStandings()" style="background:var(--y);color:#1a1a1a;font-weight:900;font-size:13px;padding:10px 24px;border-radius:10px;border:none;cursor:pointer;font-family:inherit">🔄 再取得</button>
     </div>`;
+  const isStatic = standings === STANDINGS_STATIC || standings.every(r => STANDINGS_STATIC.some(s => s.team === r.team && s.pts === r.pts));
   return `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-      <div style="font-size:11px;color:#888;margin-bottom:4px">🗾 EASTグループ（柏レイソル所属）</div>
+      <div>
+        <div style="font-size:11px;color:#888">🗾 EASTグループ（柏レイソル所属）</div>
+        <div style="font-size:10px;margin-top:2px;color:${isStatic?'#666':'#4caf50'}">${isStatic?'⚠️ 静的データ（第4節終了時点）':'✅ 最新データ取得済み'}</div>
+      </div>
       <button onclick="fetchStandings()" style="background:none;border:1px solid #333;border-radius:8px;padding:4px 10px;color:#888;font-size:11px;cursor:pointer;font-family:inherit">🔄 更新</button>
     </div>
     <div class="standings-table">
