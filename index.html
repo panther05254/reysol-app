@@ -924,7 +924,7 @@ function render() {
     content.className = 'content';
     if (activeTab === 'news') content.innerHTML = renderNews();
     else if (activeTab === 'matches') content.innerHTML = renderMatches();
-    else if (activeTab === 'rating') content.innerHTML = renderRatingTab();
+    else if (activeTab === 'rating') content.innerHTML = window.renderRatingTab ? window.renderRatingTab() : '';
     else if (activeTab === 'chant') content.innerHTML = renderChant();
     else if (activeTab === 'standings') content.innerHTML = renderStandings();
   }
@@ -1083,6 +1083,7 @@ function subscribePosts() {
 function escapeHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+window.escapeHtml = escapeHtml;
 
 function timeAgo(ts) {
   if (!ts) return '';
@@ -1178,7 +1179,6 @@ function calcAvgRatings() {
 }
 
 function renderRatingTab() {
-  const finished = getFinishedMatches();
 
   if (finished.length === 0) return `
     <div style="text-align:center;padding:48px 16px;color:#555">
@@ -1306,6 +1306,7 @@ function renderRatingTab() {
   }
   return '';
 }
+window.renderRatingTab = renderRatingTab;
 
 // ── RENDER COMMUNITY ──────────────────────────────────────────────────────────
 window.renderCommunity = function() {
