@@ -1104,8 +1104,209 @@ let photoUploading = false;
 let lastReadReplyTs = parseInt(localStorage.getItem('reysol_last_read_reply_ts') || '0');
 let unreadReplyCount = 0;
 
-// ── RENDER ────────────────────────────────────────────────────────────────────
-window.renderCommunity = function() {
+// ── RATING STATE ──────────────────────────────────────────────────────────────
+let ratingView = null;       // null=一覧, 'form'=採点入力, 'result'=結果
+let ratingMatchId = null;    // 採点対象の試合ID (rawDate)
+let ratingDraft = {};        // { playerName: { score, comment } }
+let allRatings = {};         // { uid: { nick, players:{name:{score,comment}}, ts } }
+let myRating = null;         // 自分の採点データ
+let unsubRatings = null;
+
+// 柏レイソル 2026年シーズン登録選手
+const REYSOL_PLAYERS = [
+  { pos:'GK', name:'松本健太' },
+  { pos:'GK', name:'佐々木雅士' },
+  { pos:'DF', name:'古賀太陽' },
+  { pos:'DF', name:'犬飼智也' },
+  { pos:'DF', name:'杉岡大暉' },
+  { pos:'DF', name:'三丸拡' },
+  { pos:'DF', name:'関根大輝' },
+  { pos:'DF', name:'飯田航平' },
+  { pos:'MF', name:'熊坂ジョアン直哉' },
+  { pos:'MF', name:'中川敦瑛' },
+  { pos:'MF', name:'山内日向汰' },
+  { pos:'MF', name:'小西雄大' },
+  { pos:'MF', name:'戸嶋祥郎' },
+  { pos:'MF', name:'大嶋春樹' },
+  { pos:'MF', name:'木下康介' },
+  { pos:'FW', name:'垣田裕暉' },
+  { pos:'FW', name:'細谷真大' },
+  { pos:'FW', name:'小見洋太' },
+  { pos:'FW', name:'瀬川祐輔' },
+  { pos:'FW', name:'汰木康也' },
+  { pos:'FW', name:'久保藤次郎' },
+];
+
+function getFinishedMatches() {
+  return (window.matches || []).filter(m => m.status === 'finished' && m.homeScore !== '?');
+}
+
+function ratingMatchLabel(m) {
+  return `${m.competition.split(' ')[0]} ${m.home} ${m.homeScore}-${m.awayScore} ${m.away}`;
+}
+
+function subscribeRatings(matchId) {
+  if (unsubRatings) { unsubRatings(); unsubRatings = null; }
+  unsubRatings = onValue(ref(db, `ratings/${matchId}`), snap => {
+    allRatings = {};
+    snap.forEach(child => {
+      allRatings[child.key] = child.val();
+    });
+    myRating = currentUser ? (allRatings[currentUser.uid] || null) : null;
+    if (window.activeTab === 'community') renderCommunityDOM();
+  });
+}
+
+function calcAvgRatings() {
+  const totals = {}, counts = {};
+  for (const r of Object.values(allRatings)) {
+    for (const [name, d] of Object.entries(r.players || {})) {
+      if (!d.score) continue;
+      totals[name] = (totals[name] || 0) + d.score;
+      counts[name] = (counts[name] || 0) + 1;
+    }
+  }
+  const avg = {};
+  for (const name of Object.keys(totals)) {
+    avg[name] = (totals[name] / counts[name]).toFixed(1);
+  }
+  return avg;
+}
+
+function renderRatingSection() {
+  const finished = getFinishedMatches();
+  if (finished.length === 0) return '';
+
+  // 採点一覧表示
+  if (!ratingView) {
+    return `
+      <div style="margin-bottom:18px">
+        <div style="color:var(--y);font-weight:900;font-size:15px;margin-bottom:12px">⭐ 選手採点</div>
+        ${finished.map(m => {
+          const mid = m.rawDate;
+          const hasMyRating = allRatings[currentUser?.uid]?.[mid] != null;
+          const raterCount = 0; // 一覧では取得しない（クリックで取得）
+          return `
+          <div onclick="window.openRating('${mid}')"
+            style="background:var(--card);border-radius:12px;padding:12px 14px;margin-bottom:8px;border:1px solid ${hasMyRating?'color-mix(in srgb,var(--y) 40%,transparent)':'var(--border)'};cursor:pointer;display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div style="font-size:11px;color:#666;margin-bottom:4px">${m.competition}</div>
+              <div style="font-size:13px;font-weight:700;color:#ddd">${m.home} <span style="color:var(--y)">${m.homeScore}-${m.awayScore}</span> ${m.away}</div>
+              <div style="font-size:11px;color:#555;margin-top:2px">${m.date}</div>
+            </div>
+            <div style="text-align:right">
+              ${hasMyRating
+                ? `<div style="color:var(--y);font-size:11px;font-weight:700">採点済み ✓</div>`
+                : `<div style="color:#555;font-size:11px">未採点</div>`}
+              <div style="color:#888;font-size:10px;margin-top:2px">タップして採点 →</div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`;
+  }
+
+  const m = getFinishedMatches().find(m => m.rawDate === ratingMatchId);
+  if (!m) return '';
+
+  // 採点入力フォーム
+  if (ratingView === 'form') {
+    const posGroups = ['GK','DF','MF','FW'];
+    return `
+      <div style="margin-bottom:18px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+          <button onclick="window.closeRating()" style="background:none;border:none;color:#888;font-size:20px;cursor:pointer;padding:0;line-height:1">←</button>
+          <div>
+            <div style="color:var(--y);font-weight:900;font-size:15px">⭐ 選手採点</div>
+            <div style="color:#666;font-size:11px;margin-top:2px">${m.home} ${m.homeScore}-${m.awayScore} ${m.away} · ${m.date}</div>
+          </div>
+        </div>
+        ${posGroups.map(pos => {
+          const players = REYSOL_PLAYERS.filter(p => p.pos === pos);
+          return `
+          <div style="margin-bottom:14px">
+            <div style="color:#888;font-size:11px;font-weight:700;letter-spacing:1px;margin-bottom:8px;padding-left:2px">${pos}</div>
+            ${players.map(p => {
+              const d = ratingDraft[p.name] || {};
+              const score = d.score || 0;
+              return `
+              <div style="background:var(--card);border-radius:12px;padding:12px;margin-bottom:8px;border:1px solid var(--border)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                  <div style="font-weight:700;color:#ddd;font-size:14px">${p.name}</div>
+                  <div style="color:${score>=8?'#4caf50':score>=6?'var(--y)':score>=4?'#ff9800':'#f44336'};font-weight:900;font-size:20px;min-width:28px;text-align:right">${score||'―'}</div>
+                </div>
+                <div style="display:flex;gap:4px;margin-bottom:8px">
+                  ${[1,2,3,4,5,6,7,8,9,10].map(n => `
+                    <button onclick="window.setScore('${p.name}',${n})"
+                      style="flex:1;padding:5px 0;border-radius:6px;border:1px solid ${score===n?'var(--y)':'#2a2a2a'};background:${score===n?'var(--y)':'#1a1a1a'};color:${score===n?'#1a1a1a':'#666'};font-size:11px;font-weight:${score===n?'900':'400'};cursor:pointer">${n}</button>
+                  `).join('')}
+                </div>
+                <input type="text" value="${escapeHtml(d.comment||'')}" maxlength="60"
+                  placeholder="コメント（任意）"
+                  oninput="window.setComment('${p.name}',this.value)"
+                  style="width:100%;background:#111;border:1px solid #2a2a2a;border-radius:8px;padding:7px 10px;color:#ccc;font-size:12px;font-family:inherit;outline:none">
+              </div>`;
+            }).join('')}
+          </div>`;
+        }).join('')}
+        <button onclick="window.submitRating()" style="width:100%;background:var(--y);color:#1a1a1a;font-weight:900;font-size:15px;padding:14px;border-radius:12px;border:none;cursor:pointer;font-family:inherit;margin-bottom:6px">
+          採点を投稿する
+        </button>
+        <button onclick="window.closeRating()" style="width:100%;background:none;border:1px solid #333;color:#888;font-size:13px;padding:10px;border-radius:12px;cursor:pointer;font-family:inherit">
+          キャンセル
+        </button>
+      </div>`;
+  }
+
+  // 採点結果表示
+  if (ratingView === 'result') {
+    const avg = calcAvgRatings();
+    const raterCount = Object.keys(allRatings).length;
+    const posGroups = ['GK','DF','MF','FW'];
+    return `
+      <div style="margin-bottom:18px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+          <button onclick="window.closeRating()" style="background:none;border:none;color:#888;font-size:20px;cursor:pointer;padding:0;line-height:1">←</button>
+          <div>
+            <div style="color:var(--y);font-weight:900;font-size:15px">⭐ 選手採点結果</div>
+            <div style="color:#666;font-size:11px;margin-top:2px">${m.home} ${m.homeScore}-${m.awayScore} ${m.away} · ${raterCount}人が採点</div>
+          </div>
+        </div>
+        ${myRating
+          ? `<button onclick="window.editRating()" style="width:100%;background:none;border:1px solid color-mix(in srgb,var(--y) 40%,transparent);color:var(--y);font-size:13px;padding:9px;border-radius:10px;cursor:pointer;font-family:inherit;margin-bottom:14px">✏️ 採点を編集する</button>`
+          : `<button onclick="window.startRatingForm()" style="width:100%;background:var(--y);color:#1a1a1a;font-weight:900;font-size:13px;padding:10px;border-radius:10px;cursor:pointer;font-family:inherit;margin-bottom:14px">⭐ 採点する</button>`}
+        ${posGroups.map(pos => {
+          const players = REYSOL_PLAYERS.filter(p => p.pos === pos);
+          return `
+          <div style="margin-bottom:14px">
+            <div style="color:#888;font-size:11px;font-weight:700;letter-spacing:1px;margin-bottom:8px;padding-left:2px">${pos}</div>
+            ${players.map(p => {
+              const avgScore = avg[p.name];
+              const myScore = myRating?.players?.[p.name]?.score;
+              const myComment = myRating?.players?.[p.name]?.comment;
+              const bar = avgScore ? Math.round((avgScore / 10) * 100) : 0;
+              return `
+              <div style="background:var(--card);border-radius:12px;padding:12px;margin-bottom:8px;border:1px solid var(--border)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                  <div style="font-weight:700;color:#ddd;font-size:14px">${p.name}</div>
+                  <div style="display:flex;align-items:center;gap:8px">
+                    ${myScore ? `<span style="color:#888;font-size:11px">自分: <b style="color:var(--y)">${myScore}</b></span>` : ''}
+                    <span style="color:${avgScore>=8?'#4caf50':avgScore>=6?'var(--y)':avgScore>=4?'#ff9800':'#f44336'};font-weight:900;font-size:22px">${avgScore || '―'}</span>
+                  </div>
+                </div>
+                ${avgScore ? `
+                  <div style="background:#222;border-radius:4px;height:4px;margin-bottom:6px">
+                    <div style="background:${avgScore>=8?'#4caf50':avgScore>=6?'var(--y)':'#ff9800'};height:4px;border-radius:4px;width:${bar}%;transition:width 0.4s"></div>
+                  </div>` : ''}
+                ${myComment ? `<div style="color:#666;font-size:11px;font-style:italic">"${escapeHtml(myComment)}"</div>` : ''}
+              </div>`;
+            }).join('')}
+          </div>`;
+        }).join('')}
+      </div>`;
+  }
+  return '';
+}
+
   subscribePosts();
   return `<div id="community-root"></div>`;
 };
@@ -1221,6 +1422,9 @@ function renderCommunityDOM() {
       </button>
     </div>
 
+    ${renderRatingSection()}
+
+    ${ratingView ? '' : `
     <div style="background:var(--card);border-radius:14px;padding:13px;margin-bottom:14px;border:1px solid color-mix(in srgb,var(--y) 25%,transparent)">
       ${replyBanner}
       <textarea id="post-input" placeholder="${replyingTo ? '返信を入力...' : 'レイソルについて語ろう！'}" maxlength="200"
@@ -1247,12 +1451,74 @@ function renderCommunityDOM() {
 
     ${communityPosts.length === 0
       ? `<div style="text-align:center;padding:32px;color:#444;font-size:13px">まだ投稿がありません。<br>最初の投稿をしてみよう！</div>`
-      : communityPosts.map(p => renderPostCard(p)).join('')}`;
+      : communityPosts.map(p => renderPostCard(p)).join('')}`}`;
 
   const ta = document.getElementById('post-input');
   const cc = document.getElementById('char-count');
   if (ta && cc) ta.oninput = () => { cc.textContent = `${ta.value.length} / 200`; };
 }
+
+// ── RATING ACTIONS ────────────────────────────────────────────────────────────
+window.openRating = function(matchId) {
+  ratingMatchId = matchId;
+  ratingDraft = {};
+  subscribeRatings(matchId);
+  // myRatingがあれば結果表示、なければ採点フォームへ
+  // subscribeRatingsのコールバックでmyRatingがセットされるが初回は即座に判定
+  ratingView = 'result';
+  renderCommunityDOM();
+};
+
+window.startRatingForm = function() {
+  // 既存採点をdraftにロード
+  if (myRating?.players) {
+    ratingDraft = JSON.parse(JSON.stringify(myRating.players));
+  } else {
+    ratingDraft = {};
+  }
+  ratingView = 'form';
+  renderCommunityDOM();
+};
+
+window.editRating = function() {
+  window.startRatingForm();
+};
+
+window.closeRating = function() {
+  if (ratingView === 'form') { ratingView = 'result'; renderCommunityDOM(); return; }
+  ratingView = null;
+  ratingMatchId = null;
+  if (unsubRatings) { unsubRatings(); unsubRatings = null; }
+  allRatings = {};
+  myRating = null;
+  renderCommunityDOM();
+};
+
+window.setScore = function(name, score) {
+  ratingDraft[name] = { ...(ratingDraft[name]||{}), score };
+  renderCommunityDOM();
+};
+
+window.setComment = function(name, comment) {
+  ratingDraft[name] = { ...(ratingDraft[name]||{}), comment };
+};
+
+window.submitRating = async function() {
+  if (!currentUser || !ratingMatchId) return;
+  const scored = Object.values(ratingDraft).filter(d => d.score > 0).length;
+  if (scored === 0) return alert('少なくとも1人の選手を採点してください');
+  try {
+    await update(ref(db, `ratings/${ratingMatchId}/${currentUser.uid}`), {
+      nick: nickname,
+      players: ratingDraft,
+      ts: serverTimestamp(),
+    });
+    ratingView = 'result';
+    renderCommunityDOM();
+  } catch(e) {
+    alert('採点の投稿に失敗しました: ' + e.message);
+  }
+};
 
 // ── ACTIONS ───────────────────────────────────────────────────────────────────
 window.saveNickname = function() {
