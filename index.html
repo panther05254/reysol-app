@@ -260,7 +260,7 @@ const KASHIWA_SCHEDULE = [
   { round:'第2節',  rawDate:'2026-02-15', time:'13:00', home:'柏レイソル',       away:'東京ヴェルディ', venue:'三協フロンテア柏スタジアム', homeScore:1, awayScore:2 },
   { round:'第3節',  rawDate:'2026-02-21', time:'14:00', home:'鹿島アントラーズ', away:'柏レイソル',   venue:'カシマスタジアム', homeScore:2, awayScore:0 },
   { round:'第4節',  rawDate:'2026-02-28', time:'15:00', home:'FC東京',           away:'柏レイソル',   venue:'味の素スタジアム', homeScore:0, awayScore:2 },
-  { round:'第5節',  rawDate:'2026-03-07', time:'13:00', home:'ジェフ千葉',       away:'柏レイソル',   venue:'フクダ電子アリーナ' },
+  { round:'第5節',  rawDate:'2026-03-07', time:'13:00', home:'ジェフ千葉',       away:'柏レイソル',   venue:'フクダ電子アリーナ', homeScore:2, awayScore:1 },
   { round:'第6節',  rawDate:'2026-03-14', time:'14:00', home:'柏レイソル',       away:'FC町田ゼルビア', venue:'三協フロンテア柏スタジアム' },
   { round:'第7節',  rawDate:'2026-03-18', time:'19:30', home:'浦和レッズ',       away:'柏レイソル',   venue:'埼玉スタジアム2002' },
   { round:'第8節',  rawDate:'2026-03-22', time:'16:00', home:'柏レイソル',       away:'水戸ホーリーホック', venue:'三協フロンテア柏スタジアム' },
@@ -280,72 +280,100 @@ async function fetchMatches() {
   matchesLoading = true;
   matchesError = false;
   if (activeTab === 'matches') render();
+
   try {
-    // 静的日程をベースに作成
-    const today = new Date();
+    const nowJST = new Date(Date.now() + 9*60*60*1000);
+
+    // ── Step 1: 静的日程ベースを構築 ──────────────────────────────
     const base = KASHIWA_SCHEDULE.map((s, i) => {
-      const dt = new Date(s.rawDate + 'T' + s.time + ':00+09:00');
+      const d = new Date(s.rawDate + 'T00:00:00+09:00');
+      const days = ['日','月','火','水','木','金','土'];
+      const kickoffJST = new Date(s.rawDate + 'T' + s.time + ':00+09:00');
+      // 試合終了判定: 静的スコアあり or キックオフから2時間以上経過
       const hasStaticScore = s.homeScore !== undefined;
-      const finished = hasStaticScore || dt < today;
+      const likelyFinished = (nowJST - kickoffJST) > 2 * 60 * 60 * 1000;
+      const isLive = !hasStaticScore && (nowJST - kickoffJST) >= 0 && (nowJST - kickoffJST) < 2*60*60*1000;
       return {
         id: 'k' + i,
+        round: s.round,
         rawDate: s.rawDate,
-        date: (() => {
-          const d = new Date(s.rawDate + 'T00:00:00+09:00');
-          const days = ['日','月','火','水','木','金','土'];
-          return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日(${days[d.getDay()]})`;
-        })(),
+        date: `${d.getUTCFullYear()}年${d.getUTCMonth()+1}月${d.getUTCDate()}日(${days[d.getUTCDay()]})`,
         time: s.time,
         home: s.home,
         away: s.away,
         homeScore: hasStaticScore ? s.homeScore : null,
         awayScore: hasStaticScore ? s.awayScore : null,
         venue: s.venue,
-        status: finished ? 'finished' : 'upcoming',
+        status: hasStaticScore ? 'finished' : isLive ? 'live' : likelyFinished ? 'finished' : 'upcoming',
         competition: s.round + ' J1百年構想リーグ',
+        scorers: [],
       };
     });
 
-    // TheSportsDBでスコア補完を試みる
+    // ── Step 2: TheSportsDB で直近試合のスコアを補完 ──────────────
     try {
-      const [nextRes, lastRes] = await Promise.all([
-        fetch(`${TSDB}/eventsnext.php?id=${KASHIWA_TSDB}`),
-        fetch(`${TSDB}/eventslast.php?id=${KASHIWA_TSDB}`),
+      // 直近15試合 + 次の試合 の2エンドポイントを並列取得
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 6000);
+      const [r1, r2] = await Promise.all([
+        fetch(`${TSDB}/eventslast.php?id=${KASHIWA_TSDB}`, { signal: ctrl.signal }),
+        fetch(`${TSDB}/eventsnext.php?id=${KASHIWA_TSDB}`, { signal: ctrl.signal }),
       ]);
-      const [nextData, lastData] = await Promise.all([nextRes.json(), lastRes.json()]);
-      const apiEvents = [...(nextData.events||[]), ...(lastData.results||[])];
+      clearTimeout(timer);
+      const [d1, d2] = await Promise.all([r1.json(), r2.json()]);
+      const apiEvents = [...(d1.results || []), ...(d2.events || [])];
 
-      // 日付でマッチングしてスコアを上書き（静的スコアがない場合のみ）
+      let updatedCount = 0;
       for (const e of apiEvents) {
-        const match = base.find(m => m.rawDate === e.dateEvent && m.homeScore === null);
-        if (match && e.intHomeScore != null && e.intHomeScore !== '') {
+        const scored = e.intHomeScore != null && e.intHomeScore !== '' && e.intAwayScore != null;
+        const match = base.find(m => m.rawDate === e.dateEvent);
+        if (!match) continue;
+        if (scored && match.homeScore === null) {
           match.homeScore = parseInt(e.intHomeScore);
           match.awayScore = parseInt(e.intAwayScore);
           match.status = 'finished';
+          updatedCount++;
+        }
+        // 次の試合のキックオフ時刻も更新
+        if (!scored && e.strTime && e.strTime !== '00:00:00') {
+          const jst = new Date(e.dateEvent + 'T' + e.strTime + 'Z');
+          const h = String((jst.getUTCHours() + 9) % 24).padStart(2,'0');
+          const mi = String(jst.getUTCMinutes()).padStart(2,'0');
+          match.time = `${h}:${mi}`;
         }
       }
+      console.log(`[Reysol] TheSportsDB: ${apiEvents.length}件取得, ${updatedCount}件スコア更新`);
     } catch(err) {
-      console.warn('[Reysol] score overlay failed:', err.message);
+      console.warn('[Reysol] TheSportsDB failed:', err.message);
     }
 
+    // ── Step 3: 試合後なのにスコアがない場合は「結果取得中」表示 ──
+    for (const m of base) {
+      if (m.status === 'finished' && m.homeScore === null) {
+        m.homeScore = '?';
+        m.awayScore = '?';
+      }
+    }
+
+    // ── Step 4: ソート（終了済み→日付降順、未来→日付昇順、終了を先頭）──
     matches = base.sort((a, b) => {
-      const aDate = new Date(a.rawDate);
-      const bDate = new Date(b.rawDate);
-      if (a.status === 'finished' && b.status === 'finished') return bDate - aDate;
-      if (a.status !== 'finished' && b.status !== 'finished') return aDate - bDate;
-      if (a.status === 'finished') return -1;
-      return 1;
+      const aD = new Date(a.rawDate), bD = new Date(b.rawDate);
+      if (a.status === 'finished' && b.status === 'finished') return bD - aD;
+      if (a.status !== 'finished' && b.status !== 'finished') return aD - bD;
+      return a.status === 'finished' ? -1 : 1;
     });
+
   } catch(e) {
     console.error('[Reysol] fetchMatches error:', e);
     matchesError = true;
   }
+
   matchesLoading = false;
   if (activeTab === 'matches') render();
 }
 
 // 東グループ 10チーム（固定）
-// 第5節終了時点の静的データ（フォールバック用）
+// 第4節終了時点の静的データ（フォールバック用）
 const STANDINGS_STATIC = [
   { pos:1,  team:'鹿島アントラーズ',   played:5, won:4, draw:0, lost:1, gf:9,  ga:3,  pts:13 },
   { pos:2,  team:'浦和レッズ',         played:5, won:3, draw:0, lost:2, gf:9,  ga:4,  pts:10 },
@@ -904,7 +932,7 @@ function renderStandings() {
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
       <div>
         <div style="font-size:11px;color:#888">🗾 EASTグループ（柏レイソル所属）</div>
-        <div style="font-size:10px;margin-top:2px;color:${isStatic?'#666':'#4caf50'}">${isStatic?'⚠️ 静的データ（第5節終了時点）':'✅ 最新データ取得済み'}</div>
+        <div style="font-size:10px;margin-top:2px;color:${isStatic?'#666':'#4caf50'}">${isStatic?'⚠️ 静的データ（第4節終了時点）':'✅ 最新データ取得済み'}</div>
       </div>
       <button onclick="fetchStandings()" style="background:none;border:1px solid #333;border-radius:8px;padding:4px 10px;color:#888;font-size:11px;cursor:pointer;font-family:inherit">🔄 更新</button>
     </div>
@@ -997,6 +1025,41 @@ render();
 fetchRSS();
 fetchMatches();
 fetchStandings();
+
+// 試合中・試合後は自動更新ポーリング
+(function scheduleAutoRefresh() {
+  const nowJST = new Date(Date.now() + 9*60*60*1000);
+  // 当日に試合があるか判定
+  const todayStr = nowJST.toISOString().slice(0, 10);
+  const todayMatch = KASHIWA_SCHEDULE.find(s => s.rawDate === todayStr);
+  if (todayMatch) {
+    const kickoff = new Date(todayMatch.rawDate + 'T' + todayMatch.time + ':00+09:00');
+    const msToKickoff = kickoff - Date.now();
+    const msAfterKickoff = Date.now() - kickoff;
+    if (msToKickoff > 0 && msToKickoff < 2*60*60*1000) {
+      // キックオフまで2時間以内 → キックオフ後に1分ごと更新開始
+      setTimeout(() => {
+        const ticker = setInterval(() => {
+          fetchMatches();
+          fetchStandings();
+          // 試合終了から1時間後（キックオフ+3時間）で停止
+          if (Date.now() - kickoff > 3*60*60*1000) clearInterval(ticker);
+        }, 60*1000);
+      }, Math.max(0, msToKickoff));
+    } else if (msAfterKickoff > 0 && msAfterKickoff < 3*60*60*1000) {
+      // すでにキックオフ済み（3時間以内）→ 今すぐ1分ごと更新
+      const ticker = setInterval(() => {
+        fetchMatches();
+        fetchStandings();
+        if (Date.now() - kickoff > 3*60*60*1000) clearInterval(ticker);
+      }, 60*1000);
+    }
+  }
+  // 翌日も再スケジュール（日付変更時）
+  const msToMidnight = new Date(todayStr + 'T15:00:00Z') - Date.now(); // JST 0:00 = UTC 15:00
+  if (msToMidnight > 0) setTimeout(scheduleAutoRefresh, msToMidnight + 1000);
+})();
+
 
 // Service Worker
 if ('serviceWorker' in navigator) {
