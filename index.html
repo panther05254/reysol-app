@@ -1396,7 +1396,7 @@ function renderPostCard(p) {
     : '';
 
   return `
-    <div style="background:var(--card);border-radius:14px;padding:13px 14px;margin-bottom:10px;border:1px solid ${unreadReplies>0?'#ff444466':' var(--border)'}">
+    <div id="post-card-${p.id}" style="background:var(--card);border-radius:14px;padding:13px 14px;margin-bottom:10px;border:1px solid ${unreadReplies>0?'#ff444466':' var(--border)'}">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <div style="display:flex;align-items:center;gap:8px">
           <div style="width:30px;height:30px;background:${nickColor(p.nick).bg};border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:13px;flex-shrink:0">${escapeHtml(p.nick||'?')[0]}</div>
@@ -1497,8 +1497,8 @@ function renderCommunityDOM() {
   const cc = document.getElementById('char-count');
   if (ta && cc) ta.oninput = () => { cc.textContent = `${ta.value.length} / 200`; };
 
-  // スクロール位置を復元
-  if (content && scrollTop) content.scrollTop = scrollTop;
+  // スクロール位置を復元（rAFで確実に）
+  if (content && scrollTop) requestAnimationFrame(() => { content.scrollTop = scrollTop; });
 }
 
 // ── RATING ACTIONS ────────────────────────────────────────────────────────────
@@ -1608,7 +1608,6 @@ function _updateReplyBanner() {
 
 window.toggleReplies = function(postId) {
   openReplies[postId] = !openReplies[postId];
-  // 返信を開いたら既読に
   if (openReplies[postId]) {
     lastReadReplyTs = Date.now();
     window.lastReadReplyTs = lastReadReplyTs;
@@ -1616,7 +1615,14 @@ window.toggleReplies = function(postId) {
     window.unreadReplyCount = 0;
     if (window.renderNav) window.renderNav();
   }
-  renderCommunityDOM();
+  // 該当カードだけ差し替え（スクロール位置を動かさない）
+  const cardEl = document.getElementById(`post-card-${postId}`);
+  if (cardEl) {
+    const post = communityPosts.find(p => p.id === postId);
+    if (post) cardEl.outerHTML = renderPostCard(post);
+  } else {
+    renderCommunityDOM();
+  }
 };
 
 window.onPhotoSelect = function(e) {
