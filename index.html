@@ -1344,33 +1344,51 @@ function renderPostCard(p) {
     : 0;
 
   const repliesHtml = repliesOpen && p.replies
-    ? Object.entries(p.replies).sort((a,b) => (a[1].ts||0)-(b[1].ts||0)).map(([rid, r]) => {
-        const isOwnReply = r.uid === currentUser?.uid;
-        const isNew = isOwn && (r.ts||0) > lastReadReplyTs && r.uid !== currentUser?.uid;
-        const replyToLabel = r.replyToNick
-          ? `<span style="color:#555;font-size:11px;margin-bottom:3px;display:block">↩ <b style="color:#888">${escapeHtml(r.replyToNick)}</b> さんへ</span>`
-          : '';
-        return `
-        <div style="margin-top:8px;padding-left:12px;border-left:2px solid ${isNew?'var(--y)':'#2a2a2a'};${isNew?'background:color-mix(in srgb,var(--y) 4%,transparent);border-radius:0 8px 8px 0;':''}">
-          <div style="display:flex;gap:8px;padding:6px 4px 6px 0">
-            <div style="width:22px;height:22px;background:${nickColor(r.nick).bg};border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:10px;flex-shrink:0;margin-top:1px">${escapeHtml(r.nick||'?')[0]}</div>
-            <div style="flex:1;min-width:0">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
-                <div style="display:flex;align-items:center;gap:6px">
-                  <span style="color:${nickColor(r.nick).text};font-weight:700;font-size:12px">${escapeHtml(r.nick||'匿名')}</span>
-                  ${isNew ? `<span style="background:#ff4444;color:#fff;font-size:9px;font-weight:900;padding:1px 5px;border-radius:6px">NEW</span>` : ''}
+    ? (() => {
+        const entries = Object.entries(p.replies).sort((a,b) => (a[1].ts||0)-(b[1].ts||0));
+
+        // 各返信の深さを計算（replyToIdを辿る）
+        const depthMap = {};
+        for (const [rid, r] of entries) {
+          if (!r.replyToId) {
+            depthMap[rid] = 0;
+          } else {
+            depthMap[rid] = Math.min((depthMap[r.replyToId] ?? 0) + 1, 3); // 最大3段
+          }
+        }
+
+        return entries.map(([rid, r]) => {
+          const isOwnReply = r.uid === currentUser?.uid;
+          const isNew = isOwn && (r.ts||0) > lastReadReplyTs && r.uid !== currentUser?.uid;
+          const depth = depthMap[rid] || 0;
+          const indent = depth * 14; // 1段あたり14px
+          const borderColor = isNew ? 'var(--y)' : depth === 0 ? '#2a2a2a' : depth === 1 ? '#3a3a3a' : '#444';
+          const replyToLabel = r.replyToNick
+            ? `<span style="color:#555;font-size:11px;margin-bottom:3px;display:block">↩ <b style="color:#888">${escapeHtml(r.replyToNick)}</b> さんへ</span>`
+            : '';
+          return `
+          <div style="margin-top:8px;margin-left:${indent}px;padding-left:12px;border-left:2px solid ${borderColor};${isNew?'background:color-mix(in srgb,var(--y) 4%,transparent);border-radius:0 8px 8px 0;':''}">
+            <div style="display:flex;gap:8px;padding:6px 4px 6px 0">
+              <div style="width:${depth>0?'18':'22'}px;height:${depth>0?'18':'22'}px;background:${nickColor(r.nick).bg};border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:${depth>0?'9':'10'}px;flex-shrink:0;margin-top:1px">${escapeHtml(r.nick||'?')[0]}</div>
+              <div style="flex:1;min-width:0">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <span style="color:${nickColor(r.nick).text};font-weight:700;font-size:${depth>0?'11':'12'}px">${escapeHtml(r.nick||'匿名')}</span>
+                    ${isNew ? `<span style="background:#ff4444;color:#fff;font-size:9px;font-weight:900;padding:1px 5px;border-radius:6px">NEW</span>` : ''}
+                  </div>
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <span style="color:#444;font-size:10px">${timeAgo(r.ts)}</span>
+                    ${isOwnReply ? `<button onclick="window.deleteReply('${p.id}','${rid}')" style="background:none;border:none;color:#555;font-size:13px;cursor:pointer;padding:0;line-height:1;">🗑️</button>` : ''}
+                  </div>
                 </div>
-                <div style="display:flex;align-items:center;gap:6px">
-                  <span style="color:#444;font-size:10px">${timeAgo(r.ts)}</span>
-                  ${isOwnReply ? `<button onclick="window.deleteReply('${p.id}','${rid}')" style="background:none;border:none;color:#555;font-size:13px;cursor:pointer;padding:0;line-height:1;">🗑️</button>` : ''}
-                </div>
+                ${replyToLabel}
+                <div style="color:#ccc;font-size:13px;line-height:1.5;word-break:break-word">${escapeHtml(r.text||'')}</div>
+                <button onclick="window.startReply('${p.id}','${escapeHtml(r.nick||'匿名')}','${rid}')" style="background:none;border:none;color:#555;font-size:11px;cursor:pointer;padding:4px 0 0;font-family:inherit">↩ 返信</button>
               </div>
-              ${replyToLabel}
-              <div style="color:#ccc;font-size:13px;line-height:1.5;word-break:break-word">${escapeHtml(r.text||'')}</div>
-              <button onclick="window.startReply('${p.id}','${escapeHtml(r.nick||'匿名')}','${rid}')" style="background:none;border:none;color:#555;font-size:11px;cursor:pointer;padding:4px 0 0;font-family:inherit">↩ 返信</button>
             </div>
-          </div>
-        </div>`}).join('')
+          </div>`;
+        }).join('');
+      })()
     : '';
 
   const replyBadge = unreadReplies > 0
@@ -1644,7 +1662,7 @@ window.submitPost = async function() {
         text: text || '', nick: nickname,
         uid: currentUser.uid,
         ts: serverTimestamp(),
-        ...(replyingTo.replyId ? { replyToNick: replyingTo.nick } : {}),
+        ...(replyingTo.replyId ? { replyToNick: replyingTo.nick, replyToId: replyingTo.replyId } : {}),
       });
       openReplies[replyingTo.id] = true;
       replyingTo = null;
