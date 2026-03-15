@@ -321,20 +321,13 @@ async function fetchMatches() {
 
       let updatedCount = 0;
       for (const e of apiEvents) {
-        const match = base.find(m => m.rawDate === e.date);
+        const match = base.find(m => m.rawDate === (e.rawDate || e.date));
         if (!match) continue;
         if (e.homeScore !== null && match.homeScore === null) {
           match.homeScore = e.homeScore;
           match.awayScore = e.awayScore;
           match.status = 'finished';
           updatedCount++;
-        }
-        // 次の試合のキックオフ時刻も更新
-        if (e.homeScore === null && e.time && e.time !== '00:00:00') {
-          const jst = new Date(e.date + 'T' + e.time + 'Z');
-          const h  = String((jst.getUTCHours() + 9) % 24).padStart(2,'0');
-          const mi = String(jst.getUTCMinutes()).padStart(2,'0');
-          match.time = `${h}:${mi}`;
         }
       }
       console.log(`[Reysol] /api/matches: ${apiEvents.length}件取得, ${updatedCount}件スコア更新`);
